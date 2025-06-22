@@ -1,5 +1,7 @@
 module Main where
 
+import Tabuleiro
+
 -- Menu inicial do jogo
 main:: IO()
 main = do
@@ -43,3 +45,4 @@ iniciarJogo jogadorVsMaquina jogadorComeca = do
     putStrLn $ "Quem começa: " ++ 
         if jogadorComeca then "Jogador (ou Máquina 1)" else "Máquina (ou Máquina 2)"
     putStrLn "\nTabuleiro será exibido aqui..."
+    mostrarTabuleiro tabuleiroInicial
