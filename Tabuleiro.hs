@@ -48,3 +48,30 @@ bgPreto s = "\x1b[40m" ++ s ++ "\x1b[0m"
 
 bgBranco :: String -> String
 bgBranco s = "\x1b[47m" ++ s ++ "\x1b[0m"
+
+posicaoValida :: (Int, Int) -> Bool
+posicaoValida (linha, coluna) =
+    linha >= 0 && linha < 8 &&
+    coluna >= 0 && coluna < 8 &&
+    ((linha + coluna) `mod` 2 == 1)  -- somente casas pretas
+
+
+-- Converte coluna de Char para índice Int (A=0, B=1, ..., H=7)
+colunaParaIndice :: Char -> Maybe Int
+colunaParaIndice c
+    | c >= 'A' && c <= 'H' = Just (fromEnum c - fromEnum 'A')
+    | otherwise = Nothing
+
+-- Converte linha (1..8) para índice interno (0..7) invertendo o eixo vertical
+linhaParaIndice :: Int -> Maybe Int
+linhaParaIndice n
+    | n >= 1 && n <= 8 = Just (8 - n)
+    | otherwise = Nothing
+
+-- Valida posição dada em formato de interface (linha, coluna) 
+posicaoValidaInterface :: (Int, Char) -> Bool
+posicaoValidaInterface (l, c) = case (linhaParaIndice l, colunaParaIndice c) of
+    (Just li, Just ci) -> posicaoValida (li, ci)
+    _ -> False
+
+
