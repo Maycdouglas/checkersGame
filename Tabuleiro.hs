@@ -74,4 +74,14 @@ posicaoValidaInterface (l, c) = case (linhaParaIndice l, colunaParaIndice c) of
     (Just li, Just ci) -> posicaoValida (li, ci)
     _ -> False
 
+-- Função para consultar o conteúdo de uma posição válido no tabuleiro
+obterCasa :: Tabuleiro -> (Int, Char) -> Maybe Casa
+obterCasa tab pos@(l, c) =
+    if posicaoValidaInterface pos
+       then do
+           li <- linhaParaIndice l
+           ci <- colunaParaIndice c
+           Just ((tab !! li) !! ci)
+       else Nothing
+
 
