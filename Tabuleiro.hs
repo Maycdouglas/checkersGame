@@ -9,27 +9,20 @@ data Casa = Vazia | Ocupada Peca
 type Linha = [Casa]
 type Tabuleiro = [Linha]
 
--- bgPreto :: String -> String
--- bgPreto s = "\x1b[40m" ++ s ++ "\x1b[0m"
-
--- bgBranco :: String -> String
--- bgBranco s = "\x1b[47m" ++ s ++ "\x1b[0m"
-
-
 tabuleiroInicial :: Tabuleiro
-tabuleiroInicial = 
-    [ linhaMaquina i | i <- [0..2] ] ++ 
-    [ linhaVazia | _ <- [1..2] ] ++ 
+tabuleiroInicial =
+    [ linhaMaquina i | i <- [0..2] ] ++
+    replicate 2 linhaVazia ++
     [ linhaJogador i | i <- [0..2] ]
-    where
-        linhaMaquina i = [ if (i + j) `mod` 2 == 1 then Ocupada PecaMaquina else Vazia | j <- [0..7] ]
-        linhaJogador i = [ if (i + j) `mod` 2 == 1 then Ocupada PecaJogador else Vazia | j <- [0..7] ]
-        linhaVazia = replicate 8 Vazia
+  where
+    linhaMaquina i = [if (i + j) `mod` 2 == 1 then Ocupada PecaMaquina else Vazia | j <- [0..7]]
+    linhaJogador i = [if (i + j) `mod` 2 == 0 then Ocupada PecaJogador else Vazia | j <- [0..7]]
+    linhaVazia = replicate 8 Vazia
 
 mostrarTabuleiro :: Tabuleiro -> IO ()
 mostrarTabuleiro tab = do
     putStrLn "   ╔═══╦═══╦═══╦═══╦═══╦═══╦═══╦═══╗"
-    mapM_ putStrLn $ zipWith mostrarLinha [0..] tab
+    mapM_ putStrLn $ zipWith mostrarLinha [8,7..1] tab
     putStrLn "   ╚═══╩═══╩═══╩═══╩═══╩═══╩═══╩═══╝"
     putStrLn "     A   B   C   D   E   F   G   H"
   where
@@ -55,8 +48,3 @@ bgPreto s = "\x1b[40m" ++ s ++ "\x1b[0m"
 
 bgBranco :: String -> String
 bgBranco s = "\x1b[47m" ++ s ++ "\x1b[0m"
-
-
-
-
-
