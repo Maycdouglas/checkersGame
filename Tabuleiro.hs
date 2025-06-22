@@ -1,5 +1,7 @@
 module Tabuleiro where
 
+import Control.Monad (guard)
+
 data Peca = PecaJogador | PecaMaquina | DamaJogador | DamaMaquina
     deriving (Eq, Show)
 
@@ -83,5 +85,46 @@ obterCasa tab pos@(l, c) =
            ci <- colunaParaIndice c
            Just ((tab !! li) !! ci)
        else Nothing
+
+atualizarCasa :: Tabuleiro -> (Int, Char) -> Casa -> Maybe Tabuleiro
+atualizarCasa tab pos@(l, c) novaCasa = do
+    li <- linhaParaIndice l
+    ci <- colunaParaIndice c
+    -- Verifica se a posição é válida (dentro do tabuleiro e em casa preta)
+    guard (posicaoValida (li, ci))
+    -- Atualiza a linha desejada
+    let linhaAntiga = tab !! li
+        linhaNova = take ci linhaAntiga ++ [novaCasa] ++ drop (ci + 1) linhaAntiga
+    -- Atualiza o tabuleiro
+    let tabuleiroNovo = take li tab ++ [linhaNova] ++ drop (li + 1) tab
+    return tabuleiroNovo
+
+moverPeca :: Tabuleiro -> (Int, Char) -> (Int, Char) -> Maybe Tabuleiro
+moverPeca tab origem destino = do
+  -- Verifica se as duas posições são válidas
+  guard (posicaoValidaInterface origem)
+  guard (posicaoValidaInterface destino)
+
+  -- Pega a casa da origem
+  casaOrigem <- obterCasa tab origem
+
+  -- Verifica se tem peça na origem
+  case casaOrigem of
+    Vazia -> Nothing
+    Ocupada peca -> do
+      -- Verifica se a casa destino está vazia
+      casaDestino <- obterCasa tab destino
+      guard (casaDestino == Vazia)
+
+      -- Atualiza o tabuleiro: tirar da origem
+      tab1 <- atualizarCasa tab origem Vazia
+      -- Atualiza o tabuleiro: colocar na destino
+      tab2 <- atualizarCasa tab1 destino (Ocupada peca)
+
+      return tab2
+
+testaMovimento :: Tabuleiro -> (Int, Char) -> (Int, Char) -> IO ()
+testaMovimento tab origem destino =
+  maybe (putStrLn "Movimento inválido") mostrarTabuleiro (moverPeca tab origem destino)
 
 
