@@ -2,14 +2,14 @@ module Tabuleiro where
 
 import Control.Monad (guard)
 
-data Peca = PecaJogador | PecaMaquina | DamaJogador | DamaMaquina
+data Peca = PecaJogador1 | PecaJogador2 | DamaJogador1 | DamaJogador2
     deriving (Eq, Show)
 
 pecaAdversaria :: Peca -> Peca -> Bool
-pecaAdversaria PecaJogador  p = p == PecaMaquina || p == DamaMaquina
-pecaAdversaria DamaJogador  p = p == PecaMaquina || p == DamaMaquina
-pecaAdversaria PecaMaquina  p = p == PecaJogador || p == DamaJogador
-pecaAdversaria DamaMaquina  p = p == PecaJogador || p == DamaJogador
+pecaAdversaria PecaJogador1  p = p == PecaJogador2 || p == DamaJogador2
+pecaAdversaria DamaJogador1  p = p == PecaJogador2 || p == DamaJogador2
+pecaAdversaria PecaJogador2  p = p == PecaJogador1 || p == DamaJogador1
+pecaAdversaria DamaJogador2  p = p == PecaJogador1 || p == DamaJogador1
     
 
 data Casa = Vazia | Ocupada Peca
@@ -24,8 +24,8 @@ tabuleiroInicial =
     replicate 2 linhaVazia ++
     [ linhaJogador i | i <- [0..2] ]
   where
-    linhaMaquina i = [if (i + j) `mod` 2 == 1 then Ocupada PecaMaquina else Vazia | j <- [0..7]]
-    linhaJogador i = [if (i + j) `mod` 2 == 0 then Ocupada PecaJogador else Vazia | j <- [0..7]]
+    linhaMaquina i = [if (i + j) `mod` 2 == 1 then Ocupada PecaJogador2 else Vazia | j <- [0..7]]
+    linhaJogador i = [if (i + j) `mod` 2 == 0 then Ocupada PecaJogador1 else Vazia | j <- [0..7]]
     linhaVazia = replicate 8 Vazia
 
 mostrarTabuleiro :: Tabuleiro -> IO ()
@@ -42,10 +42,10 @@ mostrarTabuleiro tab = do
         let bg = if (linhaIndex + colIndex) `mod` 2 == 0 then bgBranco else bgPreto
             texto = case casa of
                         Vazia -> "   "
-                        Ocupada PecaJogador   -> corTexto "\x1b[34m" " o "
-                        Ocupada PecaMaquina   -> corTexto "\x1b[31m" " o "
-                        Ocupada DamaJogador   -> corTexto "\x1b[94m" " D "
-                        Ocupada DamaMaquina   -> corTexto "\x1b[91m" " D "
+                        Ocupada PecaJogador1   -> corTexto "\x1b[34m" " o "
+                        Ocupada PecaJogador2   -> corTexto "\x1b[31m" " o "
+                        Ocupada DamaJogador1   -> corTexto "\x1b[94m" " D "
+                        Ocupada DamaJogador2   -> corTexto "\x1b[91m" " D "
         in bg texto ++ "║"
 
 -- Cores e plano de fundo
@@ -150,10 +150,10 @@ movimentoSimplesValido tab origem destino =
                         casaDestino == Just Vazia &&
                         abs deltaColuna == 1 &&
                         case peca of
-                            PecaJogador  -> deltaLinha == -1 -- sobe
-                            PecaMaquina  -> deltaLinha == 1  -- desce
-                            DamaJogador  -> abs deltaLinha == 1 -- sobe ou desce
-                            DamaMaquina  -> abs deltaLinha == 1 -- sobe ou desce
+                            PecaJogador1  -> deltaLinha == -1 -- sobe
+                            PecaJogador2  -> deltaLinha == 1  -- desce
+                            DamaJogador1  -> abs deltaLinha == 1 -- sobe ou desce
+                            DamaJogador2  -> abs deltaLinha == 1 -- sobe ou desce
                     _ -> False
         _ -> False
 

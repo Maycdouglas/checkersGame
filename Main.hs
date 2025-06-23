@@ -1,25 +1,30 @@
-module Main where
+module Main where -- Define um módulo Main
 
-import Tabuleiro
-import Data.Char (toUpper)
-import Control.Monad (when)
+import Tabuleiro -- importa o módulo Tabuleiro criado por mim
+import Data.Char (toUpper) -- importa função toUpper do módulo Data.Char para converter letra minúscula em letra maiúscula | Usado em lerPosicao
+import Text.Read (readMaybe) -- importa função readMaybe para tentar converter uma string par anúmero de forma segura | usado no lerPosicao
 
 -- Tipo para identificar o jogador atual
+-- Cria um tipo algébrico com apenas dois valores possíveis
 data Jogador = Jogador1 | Jogador2
     deriving (Eq, Show)
+-- usa o Eq para poder comparar se dois jogadores são iguais ou diferentes
+-- usa o Show para poder converter o texto para String
 
+-- Função para verificar se uma peça pertence a um jogador
 pecaPertenceAoJogador :: Peca -> Jogador -> Bool
-pecaPertenceAoJogador PecaJogador Jogador1 = True
-pecaPertenceAoJogador DamaJogador Jogador1 = True
-pecaPertenceAoJogador PecaMaquina Jogador2 = True
-pecaPertenceAoJogador DamaMaquina Jogador2 = True
+pecaPertenceAoJogador PecaJogador1 Jogador1 = True
+pecaPertenceAoJogador DamaJogador1 Jogador1 = True
+pecaPertenceAoJogador PecaJogador2 Jogador2 = True
+pecaPertenceAoJogador DamaJogador2 Jogador2 = True
 pecaPertenceAoJogador _ _ = False
 
--- Converte entrada "6 B" para posição (Int, Char)
+-- Converte entrada "6 B" para posição (Int, Char), ou seja, (6, 'B')
+-- usa o readMaybe para não dar erro em tempo de execução no caso do usuário tentar uma entrada como XB, por exemplo
 lerPosicao :: String -> Maybe (Int, Char)
-lerPosicao [l,c] 
-    | c >= 'a' && c <= 'h' = Just (read [l], toUpper c)
-    | c >= 'A' && c <= 'H' = Just (read [l], c)
+lerPosicao [l, c]
+  | c >= 'a' && c <= 'h' = (,) <$> readMaybe [l] <*> Just (toUpper c)
+  | c >= 'A' && c <= 'H' = (,) <$> readMaybe [l] <*> Just c
 lerPosicao _ = Nothing
 
 -- -- Loop principal do jogo
