@@ -15,7 +15,7 @@ lerPosicao [l,c]
     | c >= 'A' && c <= 'H' = Just (read [l], c)
 lerPosicao _ = Nothing
 
--- Loop principal do jogo
+-- -- Loop principal do jogo
 loopJogo :: Tabuleiro -> Jogador -> IO ()
 loopJogo tab jogadorAtual = do
     putStrLn $ "\nTurno do " ++ show jogadorAtual
@@ -27,9 +27,13 @@ loopJogo tab jogadorAtual = do
 
     case (lerPosicao origemStr, lerPosicao destinoStr) of
         (Just origem, Just destino) -> 
-            case moverPeca tab origem destino of
-                Just tabNovo -> loopJogo tabNovo (trocarJogador jogadorAtual)
-                Nothing -> do
+            if movimentoSimplesValido tab origem destino
+                then case moverPeca tab origem destino of
+                        Just tabNovo -> loopJogo tabNovo (trocarJogador jogadorAtual)
+                        Nothing -> do
+                            putStrLn "Erro ao mover a peça! Tente novamente."
+                            loopJogo tab jogadorAtual
+                else do
                     putStrLn "Movimento inválido! Tente novamente."
                     loopJogo tab jogadorAtual
         _ -> do

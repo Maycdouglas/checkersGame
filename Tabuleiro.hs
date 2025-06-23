@@ -127,4 +127,26 @@ testaMovimento :: Tabuleiro -> (Int, Char) -> (Int, Char) -> IO ()
 testaMovimento tab origem destino =
   maybe (putStrLn "Movimento inválido") mostrarTabuleiro (moverPeca tab origem destino)
 
+movimentoSimplesValido :: Tabuleiro -> (Int, Char) -> (Int, Char) -> Bool
+movimentoSimplesValido tab origem destino = 
+    case (linhaParaIndice (fst origem), colunaParaIndice (snd origem),
+          linhaParaIndice (fst destino), colunaParaIndice (snd destino)) of
+        (Just liOrig, Just ciOrig, Just liDest, Just ciDest) ->
+            let 
+                deltaLinha = liDest - liOrig
+                deltaColuna = ciDest - ciOrig
+                casaOrigem = obterCasa tab origem
+                casaDestino = obterCasa tab destino
+            in
+                case casaOrigem of
+                    Just (Ocupada peca) ->
+                        casaDestino == Just Vazia &&
+                        abs deltaColuna == 1 &&
+                        case peca of
+                            PecaJogador  -> deltaLinha == -1 -- sobe
+                            PecaMaquina  -> deltaLinha == 1  -- desce
+                            DamaJogador  -> abs deltaLinha == 1 -- sobe ou desce
+                            DamaMaquina  -> abs deltaLinha == 1 -- sobe ou desce
+                    _ -> False
+        _ -> False
 
