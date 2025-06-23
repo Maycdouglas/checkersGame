@@ -5,6 +5,13 @@ import Control.Monad (guard)
 data Peca = PecaJogador | PecaMaquina | DamaJogador | DamaMaquina
     deriving (Eq, Show)
 
+pecaAdversaria :: Peca -> Peca -> Bool
+pecaAdversaria PecaJogador  p = p == PecaMaquina || p == DamaMaquina
+pecaAdversaria DamaJogador  p = p == PecaMaquina || p == DamaMaquina
+pecaAdversaria PecaMaquina  p = p == PecaJogador || p == DamaJogador
+pecaAdversaria DamaMaquina  p = p == PecaJogador || p == DamaJogador
+    
+
 data Casa = Vazia | Ocupada Peca
     deriving (Eq, Show)
 
@@ -150,3 +157,58 @@ movimentoSimplesValido tab origem destino =
                     _ -> False
         _ -> False
 
+movimentoCapturaValido :: Tabuleiro -> (Int, Char) -> (Int, Char) -> Bool
+movimentoCapturaValido tab origem destino =
+    case (linhaParaIndice (fst origem), colunaParaIndice (snd origem),
+          linhaParaIndice (fst destino), colunaParaIndice (snd destino)) of
+        (Just liOrig, Just ciOrig, Just liDest, Just ciDest) ->
+            let 
+                deltaLinha = liDest - liOrig
+                deltaColuna = ciDest - ciOrig
+
+                -- Posição da peça no meio
+                meioLinha = liOrig + deltaLinha `div` 2
+                meioColuna = ciOrig + deltaColuna `div` 2
+
+                posMeio = (8 - meioLinha, toEnum (fromEnum 'A' + meioColuna) :: Char)
+
+                casaOrigem = obterCasa tab origem
+                casaMeio   = obterCasa tab posMeio
+                casaDestino = obterCasa tab destino
+            in
+                case casaOrigem of
+                    Just (Ocupada pecaOrigem) ->
+                        abs deltaLinha == 2 && abs deltaColuna == 2 &&
+                        casaDestino == Just Vazia &&
+                        case casaMeio of
+                            Just (Ocupada pecaMeio) -> pecaAdversaria pecaOrigem pecaMeio
+                            _ -> False
+                    _ -> False
+        _ -> False
+
+capturarPeca :: Tabuleiro -> (Int, Char) -> (Int, Char) -> Maybe Tabuleiro
+capturarPeca tab origem destino = do
+    -- Verifica se a captura é válida
+    guard (movimentoCapturaValido tab origem destino)
+
+    casaOrigem <- obterCasa tab origem
+    case casaOrigem of
+        Vazia -> Nothing
+        Ocupada peca -> do
+            liOrig <- linhaParaIndice (fst origem)
+            ciOrig <- colunaParaIndice (snd origem)
+            liDest <- linhaParaIndice (fst destino)
+            ciDest <- colunaParaIndice (snd destino)
+
+            -- Calcula a posição da peça capturada
+            let meioLinha = liOrig + (liDest - liOrig) `div` 2
+                meioColuna = ciOrig + (ciDest - ciOrig) `div` 2
+                posMeio = (8 - meioLinha, toEnum (fromEnum 'A' + meioColuna) :: Char)
+
+            -- Remove a peça capturada
+            tab1 <- atualizarCasa tab posMeio Vazia
+            -- Move a peça de origem para destino
+            tab2 <- atualizarCasa tab1 origem Vazia
+            tab3 <- atualizarCasa tab2 destino (Ocupada peca)
+
+            return tab3

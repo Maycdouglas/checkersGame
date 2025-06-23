@@ -16,6 +16,7 @@ lerPosicao [l,c]
 lerPosicao _ = Nothing
 
 -- -- Loop principal do jogo
+
 loopJogo :: Tabuleiro -> Jogador -> IO ()
 loopJogo tab jogadorAtual = do
     putStrLn $ "\nTurno do " ++ show jogadorAtual
@@ -26,19 +27,54 @@ loopJogo tab jogadorAtual = do
     destinoStr <- getLine
 
     case (lerPosicao origemStr, lerPosicao destinoStr) of
-        (Just origem, Just destino) -> 
-            if movimentoSimplesValido tab origem destino
-                then case moverPeca tab origem destino of
-                        Just tabNovo -> loopJogo tabNovo (trocarJogador jogadorAtual)
-                        Nothing -> do
-                            putStrLn "Erro ao mover a peça! Tente novamente."
-                            loopJogo tab jogadorAtual
-                else do
-                    putStrLn "Movimento inválido! Tente novamente."
-                    loopJogo tab jogadorAtual
+        (Just origem, Just destino) 
+          | movimentoCapturaValido tab origem destino -> 
+                case capturarPeca tab origem destino of
+                    Just tabNovo -> do
+                        putStrLn "Captura realizada!"
+                        loopJogo tabNovo (trocarJogador jogadorAtual)
+                    Nothing -> do
+                        putStrLn "Erro ao capturar. Tente novamente."
+                        loopJogo tab jogadorAtual
+
+          | movimentoSimplesValido tab origem destino -> 
+                case moverPeca tab origem destino of
+                    Just tabNovo -> loopJogo tabNovo (trocarJogador jogadorAtual)
+                    Nothing -> do
+                        putStrLn "Erro ao mover peça. Tente novamente."
+                        loopJogo tab jogadorAtual
+
+          | otherwise -> do
+                putStrLn "Movimento inválido! Tente novamente."
+                loopJogo tab jogadorAtual
+
         _ -> do
             putStrLn "Entrada inválida! Tente novamente."
             loopJogo tab jogadorAtual
+
+-- loopJogo :: Tabuleiro -> Jogador -> IO ()
+-- loopJogo tab jogadorAtual = do
+--     putStrLn $ "\nTurno do " ++ show jogadorAtual
+--     mostrarTabuleiro tab
+--     putStrLn "Digite posição origem (ex: 6B): "
+--     origemStr <- getLine
+--     putStrLn "Digite posição destino (ex: 5A): "
+--     destinoStr <- getLine
+
+--     case (lerPosicao origemStr, lerPosicao destinoStr) of
+--         (Just origem, Just destino) -> 
+--             if movimentoSimplesValido tab origem destino
+--                 then case moverPeca tab origem destino of
+--                         Just tabNovo -> loopJogo tabNovo (trocarJogador jogadorAtual)
+--                         Nothing -> do
+--                             putStrLn "Erro ao mover a peça! Tente novamente."
+--                             loopJogo tab jogadorAtual
+--                 else do
+--                     putStrLn "Movimento inválido! Tente novamente."
+--                     loopJogo tab jogadorAtual
+--         _ -> do
+--             putStrLn "Entrada inválida! Tente novamente."
+--             loopJogo tab jogadorAtual
 
 trocarJogador :: Jogador -> Jogador
 trocarJogador Jogador1 = Jogador2
