@@ -42,10 +42,10 @@ mostrarTabuleiro tab = do
         let bg = if (linhaIndex + colIndex) `mod` 2 == 0 then bgBranco else bgPreto
             texto = case casa of
                         Vazia -> "   "
-                        Ocupada PecaJogador1   -> corTexto "\x1b[34m" " o "
-                        Ocupada PecaJogador2   -> corTexto "\x1b[31m" " o "
-                        Ocupada DamaJogador1   -> corTexto "\x1b[94m" " D "
-                        Ocupada DamaJogador2   -> corTexto "\x1b[91m" " D "
+                        Ocupada PecaJogador1   -> corTexto "\x1b[34;1m" " o "
+                        Ocupada PecaJogador2   -> corTexto "\x1b[33;1m" " o "
+                        Ocupada DamaJogador1   -> corTexto "\x1b[34;1m" " D "
+                        Ocupada DamaJogador2   -> corTexto "\x1b[33;1m" " D "
         in bg texto ++ "║"
 
 -- Cores e plano de fundo

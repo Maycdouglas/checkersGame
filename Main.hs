@@ -27,11 +27,18 @@ lerPosicao [l, c]
   | c >= 'A' && c <= 'H' = (,) <$> readMaybe [l] <*> Just c
 lerPosicao _ = Nothing
 
--- -- Loop principal do jogo
+-- Loop principal do jogo
+
+-- Controla o turno dos jogadores
+-- Lê as posições de origem e destino
+-- Verifica se o movimento é válido (simples ou de captura)
+-- Verifica se a peça escolhida é do jogador atual
+-- Atualiza o tabuleiro e troca o jogador
+
 --LOOP COM CAPTURA DE PEÇAS FUNCIONANDO e TURNOS
 loopJogo :: Tabuleiro -> Jogador -> IO ()
 loopJogo tab jogadorAtual = do
-    putStrLn $ "\nTurno do " ++ show jogadorAtual
+    putStrLn $ "\nTurno do " ++ nomeJogadorColorido jogadorAtual
     mostrarTabuleiro tab
     putStrLn "Digite posição origem (ex: 6B): "
     origemStr <- getLine
@@ -71,6 +78,11 @@ loopJogo tab jogadorAtual = do
         _ -> do
             putStrLn "Entrada inválida! Tente novamente."
             loopJogo tab jogadorAtual
+
+-- Função para colorir o 
+nomeJogadorColorido :: Jogador -> String
+nomeJogadorColorido Jogador1 = corTexto "\x1b[34;1m" "Jogador 1"  -- Azul
+nomeJogadorColorido Jogador2 = corTexto "\x1b[33;1m" "Jogador 2"  -- Amarelo
 
 
 --LOOP COM CAPTURA DE PEÇAS FUNCIONANDO
@@ -134,12 +146,14 @@ loopJogo tab jogadorAtual = do
 --             putStrLn "Entrada inválida! Tente novamente."
 --             loopJogo tab jogadorAtual
 
+
+-- Função para alternar entre jogadores no LoopJogo
 trocarJogador :: Jogador -> Jogador
 trocarJogador Jogador1 = Jogador2
 trocarJogador Jogador2 = Jogador1
 
 -- Menu inicial do jogo
-main:: IO()
+main:: IO() -- declara a função main como uma ação de input e output(IO)
 main = do
     putStrLn "====================="
     putStrLn "    JOGO DE DAMAS    "
@@ -149,14 +163,14 @@ main = do
     putStrLn "2 - Máquina vs Máquina"
     putStrLn "3 - Sair"
     putStrLn "Opção: "
-    option <- getLine
+    option <- getLine -- captura a opção do usuário como uma String
     case option of
-        "1" -> escolherInicio True
-        "2" -> escolherInicio False
+        "1" -> escolherInicio True -- True pq é jogadorVsMaquina
+        "2" -> escolherInicio False -- False pq é maquinaVsMaquina
         "3" -> putStrLn "Saindo do jogo..."
         _   -> do 
             putStrLn "Opção inválida, tente novamente."
-            main
+            main -- executa essa funcao até o usuário escolher uma opção válida
 
 -- Função para escolher quem começa o jogo
 escolherInicio :: Bool -> IO ()
