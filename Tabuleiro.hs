@@ -137,7 +137,6 @@ moverPeca tab origem destino = do
       -- Verifica se a casa destino está vazia
       casaDestino <- obterCasa tab destino
       guard (casaDestino == Vazia)
-
       -- Atualiza o tabuleiro: tirar da origem
       tab1 <- atualizarCasa tab origem Vazia
       -- Atualiza o tabuleiro: colocar na destino
@@ -145,9 +144,10 @@ moverPeca tab origem destino = do
 
       return tab2
 
+-- verifica se um movimento simples é válido (sem captura de peças)
 movimentoSimplesValido :: Tabuleiro -> (Int, Char) -> (Int, Char) -> Bool
 movimentoSimplesValido tab origem destino = 
-    case (linhaParaIndice (fst origem), colunaParaIndice (snd origem),
+    case (linhaParaIndice (fst origem), colunaParaIndice (snd origem), -- fst e snd são funcoes haskell que retornam os elementos da tupla
           linhaParaIndice (fst destino), colunaParaIndice (snd destino)) of
         (Just liOrig, Just ciOrig, Just liDest, Just ciDest) ->
             let 
@@ -168,6 +168,7 @@ movimentoSimplesValido tab origem destino =
                     _ -> False
         _ -> False
 
+-- Verifica se uma captura simples é válida (não funciona para captura de damas)
 movimentoCapturaValido :: Tabuleiro -> (Int, Char) -> (Int, Char) -> Bool
 movimentoCapturaValido tab origem destino =
     case (linhaParaIndice (fst origem), colunaParaIndice (snd origem),
@@ -181,7 +182,7 @@ movimentoCapturaValido tab origem destino =
                 meioLinha = liOrig + deltaLinha `div` 2
                 meioColuna = ciOrig + deltaColuna `div` 2
 
-                posMeio = (8 - meioLinha, toEnum (fromEnum 'A' + meioColuna) :: Char)
+                posMeio = (8 - meioLinha, toEnum (fromEnum 'A' + meioColuna) :: Char) -- converte para numero a coluna depois soma e volta para letra
 
                 casaOrigem = obterCasa tab origem
                 casaMeio   = obterCasa tab posMeio
@@ -192,11 +193,12 @@ movimentoCapturaValido tab origem destino =
                         abs deltaLinha == 2 && abs deltaColuna == 2 &&
                         casaDestino == Just Vazia &&
                         case casaMeio of
-                            Just (Ocupada pecaMeio) -> ehPecaAdversaria pecaOrigem pecaMeio
+                            Just (Ocupada pecaMeio) -> ehPecaAdversaria pecaOrigem pecaMeio -- retorno positivo
                             _ -> False
                     _ -> False
         _ -> False
 
+-- Função para capturar uma peça de forma simples (não funciona para dama)
 capturarPeca :: Tabuleiro -> (Int, Char) -> (Int, Char) -> Maybe Tabuleiro
 capturarPeca tab origem destino = do
     -- Verifica se a captura é válida
@@ -214,7 +216,9 @@ capturarPeca tab origem destino = do
             -- Calcula a posição da peça capturada
             let meioLinha = liOrig + (liDest - liOrig) `div` 2
                 meioColuna = ciOrig + (ciDest - ciOrig) `div` 2
-                posMeio = (8 - meioLinha, toEnum (fromEnum 'A' + meioColuna) :: Char)
+                posMeio = (8 - meioLinha, toEnum (fromEnum 'A' + meioColuna) :: Char) -- converte para numero a coluna depois soma e volta para letra
+
+            -- por aqui que vai entrar função para impedir que capture somente uma peça ao invés de várias
 
             -- Remove a peça capturada
             tab1 <- atualizarCasa tab posMeio Vazia
