@@ -71,12 +71,12 @@ bgPreto s = "\x1b[40m" ++ s ++ "\x1b[0m"
 bgBranco :: String -> String
 bgBranco s = "\x1b[47m" ++ s ++ "\x1b[0m"
 
-posicaoValida :: (Int, Int) -> Bool
-posicaoValida (linha, coluna) =
+-- Função para verificar se a posição está dentro do tabuleiro e se é uma casa preta
+ehPosicaoValida :: (Int, Int) -> Bool
+ehPosicaoValida (linha, coluna) =
     linha >= 0 && linha < 8 &&
     coluna >= 0 && coluna < 8 &&
     ((linha + coluna) `mod` 2 == 1)  -- somente casas pretas
-
 
 -- Converte coluna de Char para índice Int (A=0, B=1, ..., H=7)
 colunaParaIndice :: Char -> Maybe Int
@@ -91,39 +91,41 @@ linhaParaIndice n
     | otherwise = Nothing
 
 -- Valida posição dada em formato de interface (linha, coluna) 
-posicaoValidaInterface :: (Int, Char) -> Bool
-posicaoValidaInterface (l, c) = case (linhaParaIndice l, colunaParaIndice c) of
-    (Just li, Just ci) -> posicaoValida (li, ci)
+ehPosicaoValidaInterface :: (Int, Char) -> Bool
+ehPosicaoValidaInterface (l, c) = case (linhaParaIndice l, colunaParaIndice c) of
+    (Just li, Just ci) -> ehPosicaoValida (li, ci)
     _ -> False
 
 -- Função para consultar o conteúdo de uma posição válido no tabuleiro
 obterCasa :: Tabuleiro -> (Int, Char) -> Maybe Casa
 obterCasa tab pos@(l, c) =
-    if posicaoValidaInterface pos
+    if ehPosicaoValidaInterface pos
        then do
            li <- linhaParaIndice l
            ci <- colunaParaIndice c
-           Just ((tab !! li) !! ci)
+           Just ((tab !! li) !! ci) -- Acessa a linha do tabuleiro depois a casa da linha
        else Nothing
 
+-- Função para substituir um elemento de uma lista por outro 
+substituirNaLista :: [a] -> Int -> a -> [a]
+substituirNaLista lista idx novoElemento =
+    take idx lista ++ [novoElemento] ++ drop (idx + 1) lista
+
+-- Atualiza a casa do tabuleiro para vazia ou ocupada, a depender do caso
 atualizarCasa :: Tabuleiro -> (Int, Char) -> Casa -> Maybe Tabuleiro
-atualizarCasa tab pos@(l, c) novaCasa = do
+atualizarCasa tab (l, c) novaCasa = do
     li <- linhaParaIndice l
     ci <- colunaParaIndice c
-    -- Verifica se a posição é válida (dentro do tabuleiro e em casa preta)
-    guard (posicaoValida (li, ci))
-    -- Atualiza a linha desejada
-    let linhaAntiga = tab !! li
-        linhaNova = take ci linhaAntiga ++ [novaCasa] ++ drop (ci + 1) linhaAntiga
-    -- Atualiza o tabuleiro
-    let tabuleiroNovo = take li tab ++ [linhaNova] ++ drop (li + 1) tab
+    guard (ehPosicaoValida (li, ci))
+    let linhaNova = substituirNaLista (tab !! li) ci novaCasa
+        tabuleiroNovo = substituirNaLista tab li linhaNova
     return tabuleiroNovo
 
 moverPeca :: Tabuleiro -> (Int, Char) -> (Int, Char) -> Maybe Tabuleiro
 moverPeca tab origem destino = do
   -- Verifica se as duas posições são válidas
-  guard (posicaoValidaInterface origem)
-  guard (posicaoValidaInterface destino)
+  guard (ehPosicaoValidaInterface origem)
+  guard (ehPosicaoValidaInterface destino)
 
   -- Pega a casa da origem
   casaOrigem <- obterCasa tab origem
@@ -142,10 +144,6 @@ moverPeca tab origem destino = do
       tab2 <- atualizarCasa tab1 destino (Ocupada peca)
 
       return tab2
-
-testaMovimento :: Tabuleiro -> (Int, Char) -> (Int, Char) -> IO ()
-testaMovimento tab origem destino =
-  maybe (putStrLn "Movimento inválido") mostrarTabuleiro (moverPeca tab origem destino)
 
 movimentoSimplesValido :: Tabuleiro -> (Int, Char) -> (Int, Char) -> Bool
 movimentoSimplesValido tab origem destino = 
