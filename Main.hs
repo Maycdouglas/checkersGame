@@ -45,12 +45,14 @@ loopJogo tab jogadorAtual = do
     putStrLn "Digite posição destino (ex: 5A): "
     destinoStr <- getLine
 
+    -- Verifica se o usuário inseriu dados que representam alguma casa do tabuleiro corretamente
     case (lerPosicao origemStr, lerPosicao destinoStr) of
         (Just origem, Just destino) -> do
             -- Verifica se na origem existe peça e a quem pertence
             case obterCasa tab origem of
                 Just (Ocupada peca)
-                    | pecaPertenceAoJogador peca jogadorAtual ->
+                    | pecaPertenceAoJogador peca jogadorAtual -> -- | É como se fosse um AND quando usado no case
+                        -- Verifica é possível capturar
                         if movimentoCapturaValido tab origem destino
                             then case capturarPeca tab origem destino of
                                 Just tabNovo -> do
@@ -59,12 +61,14 @@ loopJogo tab jogadorAtual = do
                                 Nothing -> do
                                     putStrLn "Erro ao capturar. Tente novamente."
                                     loopJogo tab jogadorAtual
+                        -- Verifica se é um movimento simples válido
                         else if movimentoSimplesValido tab origem destino
                             then case moverPeca tab origem destino of
                                 Just tabNovo -> loopJogo tabNovo (trocarJogador jogadorAtual)
                                 Nothing -> do
                                     putStrLn "Erro ao mover peça. Tente novamente."
                                     loopJogo tab jogadorAtual
+                        -- Não foi captura simples nem movimento simples, logo, movimento inválido - POR ENQUANTO, tem a questão das DAMAS AINDA
                         else do
                             putStrLn "Movimento inválido! Tente novamente."
                             loopJogo tab jogadorAtual
