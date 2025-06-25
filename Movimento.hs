@@ -138,10 +138,3 @@ capturarPeca tab origem destino = do
             tab3 <- atualizarCasa tab2 destino (Ocupada peca)
 
             return tab3
-
--- Função para checar se a peça que será capturada é uma adversaria ou nao
-ehPecaAdversaria :: Peca -> Peca -> Bool
-ehPecaAdversaria PecaJogador1  p = p == PecaJogador2 || p == DamaJogador2
-ehPecaAdversaria DamaJogador1  p = p == PecaJogador2 || p == DamaJogador2
-ehPecaAdversaria PecaJogador2  p = p == PecaJogador1 || p == DamaJogador1
-ehPecaAdversaria DamaJogador2  p = p == PecaJogador1 || p == DamaJogador1

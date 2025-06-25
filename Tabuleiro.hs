@@ -19,6 +19,20 @@ data Casa = Vazia | Ocupada Peca
 type Linha = [Casa]
 type Tabuleiro = [Linha]
 
+-- Função para checar se a peça que será capturada é uma adversaria ou nao
+ehPecaAdversaria :: Peca -> Peca -> Bool
+ehPecaAdversaria PecaJogador1  p = p == PecaJogador2 || p == DamaJogador2
+ehPecaAdversaria DamaJogador1  p = p == PecaJogador2 || p == DamaJogador2
+ehPecaAdversaria PecaJogador2  p = p == PecaJogador1 || p == DamaJogador1
+ehPecaAdversaria DamaJogador2  p = p == PecaJogador1 || p == DamaJogador1
+
+-- Função para verificar se é Dama
+ehDama :: Peca -> Bool
+ehDama DamaJogador1 = True
+ehDama DamaJogador2 = True
+ehDama _            = False
+
+
 -- Função que gera o tabuleiro inicial da partida
 tabuleiroInicial :: Tabuleiro
 tabuleiroInicial =
