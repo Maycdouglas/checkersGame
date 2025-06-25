@@ -9,26 +9,31 @@ import Control.Monad (guard)
 -- Realiza a movimentação simples de uma peça
 moverPeca :: Tabuleiro -> (Int, Char) -> (Int, Char) -> Maybe Tabuleiro
 moverPeca tab origem destino = do
-  -- Verifica se as duas posições são válidas
-  guard (ehPosicaoValidaInterface origem)
-  guard (ehPosicaoValidaInterface destino)
 
-  -- Pega a casa da origem
-  casaOrigem <- obterCasa tab origem
+    -- Verifica se as duas posições são válidas
+    guard (ehPosicaoValidaInterface origem)
+    guard (ehPosicaoValidaInterface destino)
 
-  -- Verifica se tem peça na origem
-  case casaOrigem of
-    Vazia -> Nothing
-    Ocupada peca -> do
-      -- Verifica se a casa destino está vazia
-      casaDestino <- obterCasa tab destino
-      guard (casaDestino == Vazia)
-      -- Atualiza o tabuleiro: tirar da origem
-      tab1 <- atualizarCasa tab origem Vazia
-      -- Atualiza o tabuleiro: colocar na destino
-      tab2 <- atualizarCasa tab1 destino (Ocupada peca)
+    -- Pega a casa da origem
+    casaOrigem <- obterCasa tab origem
 
-      return tab2
+    -- Verifica se tem peça na origem
+    case casaOrigem of
+        Vazia -> Nothing
+        Ocupada peca -> do
+            -- Verifica se a casa destino está vazia
+            casaDestino <- obterCasa tab destino
+            guard (casaDestino == Vazia)
+
+            -- Avalia se deve promover a peça para dama
+            let novaPeca = avaliarPromocaoParaDama destino peca
+
+            -- Atualiza o tabuleiro: tirar da origem
+            tab1 <- atualizarCasa tab origem Vazia
+            -- Atualiza o tabuleiro: colocar na destino
+            tab2 <- atualizarCasa tab1 destino (Ocupada novaPeca)
+
+            return tab2
 
 -- Atualiza a casa do tabuleiro para vazia ou ocupada, a depender do caso
 atualizarCasa :: Tabuleiro -> (Int, Char) -> Casa -> Maybe Tabuleiro
@@ -135,6 +140,10 @@ capturarPeca tab origem destino = do
             tab1 <- atualizarCasa tab posMeio Vazia
             -- Move a peça de origem para destino
             tab2 <- atualizarCasa tab1 origem Vazia
-            tab3 <- atualizarCasa tab2 destino (Ocupada peca)
+
+            -- Avalia se deve promover a peça para dama
+            let novaPeca = avaliarPromocaoParaDama destino peca
+
+            tab3 <- atualizarCasa tab2 destino (Ocupada novaPeca)
 
             return tab3

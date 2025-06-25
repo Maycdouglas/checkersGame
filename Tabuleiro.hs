@@ -32,6 +32,18 @@ ehDama DamaJogador1 = True
 ehDama DamaJogador2 = True
 ehDama _            = False
 
+-- Função para promover para Dama
+promoverParaDama :: (Int, Peca) -> Peca
+promoverParaDama (0, PecaJogador1) = DamaJogador1
+promoverParaDama (7, PecaJogador2) = DamaJogador2
+promoverParaDama (_, peca)         = peca
+
+-- Função que promove ou não a peça para Dama
+avaliarPromocaoParaDama :: (Int, Char) -> Peca -> Peca
+avaliarPromocaoParaDama destino peca =
+    case linhaParaIndice (fst destino) of
+        Just li -> promoverParaDama (li, peca)
+        Nothing -> peca
 
 -- Função que gera o tabuleiro inicial da partida
 tabuleiroInicial :: Tabuleiro
