@@ -69,16 +69,12 @@ loopJogo tab jogadorAtual = do
                                             putStrLn "Erro ao capturar. Tente novamente."
                                             loopJogo tab jogadorAtual
                                 -- Verifica se é um movimento simples válido
-                                else if movimentoSimplesValido tab origem destino
-                                    then case moverPeca tab origem destino of
+                                else 
+                                    case moverPeca tab origem destino of
                                         Just tabNovo -> loopJogo tabNovo (trocarJogador jogadorAtual)
                                         Nothing -> do
-                                            putStrLn "Erro ao mover peça. Tente novamente."
+                                            putStrLn "Movimento inválido! Tente novamente."
                                             loopJogo tab jogadorAtual
-                                -- Não foi captura simples nem movimento simples, logo, movimento inválido - POR ENQUANTO, tem a questão das DAMAS AINDA
-                                else do
-                                    putStrLn "Movimento inválido! Tente novamente."
-                                    loopJogo tab jogadorAtual
                         Just Vazia -> do
                             putStrLn "Não há peça na posição de origem. Tente novamente."
                             loopJogo tab jogadorAtual    

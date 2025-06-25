@@ -1,39 +1,59 @@
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
-{-# HLINT ignore "Redundant return" #-}
 module Movimento where
 
 import Tabuleiro
 import Posicao
 import Control.Monad (guard)
 
--- Realiza a movimentação simples de uma peça
+-- Move peça de acordo se é uma dama ou uma peça comum
 moverPeca :: Tabuleiro -> (Int, Char) -> (Int, Char) -> Maybe Tabuleiro
 moverPeca tab origem destino = do
-
-    -- Verifica se as duas posições são válidas
     guard (ehPosicaoValidaInterface origem)
     guard (ehPosicaoValidaInterface destino)
 
-    -- Pega a casa da origem
     casaOrigem <- obterCasa tab origem
-
-    -- Verifica se tem peça na origem
     case casaOrigem of
         Vazia -> Nothing
-        Ocupada peca -> do
-            -- Verifica se a casa destino está vazia
-            casaDestino <- obterCasa tab destino
-            guard (casaDestino == Vazia)
+        Ocupada peca ->
+            if ehDama peca
+                then moverDama tab origem destino peca
+                else moverPecaComum tab origem destino peca
 
-            -- Avalia se deve promover a peça para dama
-            let novaPeca = avaliarPromocaoParaDama destino peca
+-- Move peça comum
+moverPecaComum :: Tabuleiro -> (Int, Char) -> (Int, Char) -> Peca -> Maybe Tabuleiro
+moverPecaComum tab origem destino peca = do
+    guard (movimentoSimplesValido tab origem destino)
+    casaDestino <- obterCasa tab destino
+    guard (casaDestino == Vazia)
 
-            -- Atualiza o tabuleiro: tirar da origem
-            tab1 <- atualizarCasa tab origem Vazia
-            -- Atualiza o tabuleiro: colocar na destino
-            tab2 <- atualizarCasa tab1 destino (Ocupada novaPeca)
+    let novaPeca = avaliarPromocaoParaDama destino peca -- Avalia se deve promover a peça para dama
+    tab1 <- atualizarCasa tab origem Vazia -- Atualiza o tabuleiro: tirar da origem
+    tab2 <- atualizarCasa tab1 destino (Ocupada novaPeca)  -- Atualiza o tabuleiro: colocar na destino
+    return tab2
 
-            return tab2
+--Move Dama
+moverDama :: Tabuleiro -> (Int, Char) -> (Int, Char) -> Peca -> Maybe Tabuleiro
+moverDama tab origem destino dama = do
+    -- Verifica se o destino está vazio
+    casaDestino <- obterCasa tab destino
+    guard (casaDestino == Vazia)
+
+    -- Converte posições para índices
+    liOrig <- linhaParaIndice (fst origem)
+    ciOrig <- colunaParaIndice (snd origem)
+    liDest <- linhaParaIndice (fst destino)
+    ciDest <- colunaParaIndice (snd destino)
+
+    -- Verifica se é uma diagonal válida
+    guard (abs (liDest - liOrig) == abs (ciDest - ciOrig))
+
+    -- Verifica se caminho está livre
+    guard (caminhoLivre tab (liOrig, ciOrig) (liDest, ciDest))
+
+    -- Atualiza o tabuleiro
+    tab1 <- atualizarCasa tab origem Vazia -- Atualiza o tabuleiro: tirar da origem
+    tab2 <- atualizarCasa tab1 destino (Ocupada dama)  -- Atualiza o tabuleiro: colocar na destino
+
+    return tab2
 
 -- Atualiza a casa do tabuleiro para vazia ou ocupada, a depender do caso
 atualizarCasa :: Tabuleiro -> (Int, Char) -> Casa -> Maybe Tabuleiro
@@ -147,3 +167,20 @@ capturarPeca tab origem destino = do
             tab3 <- atualizarCasa tab2 destino (Ocupada novaPeca)
 
             return tab3
+
+-- Verifica se o caminho entre duas posições está livre (exceto as extremidades)
+caminhoLivre :: Tabuleiro -> (Int, Int) -> (Int, Int) -> Bool
+caminhoLivre tab (liOrig, ciOrig) (liDest, ciDest) =
+  let deltaLinha = if liDest > liOrig then 1 else -1
+      deltaColuna = if ciDest > ciOrig then 1 else -1
+      -- gera a lista de posições entre origem e destino, excluindo origem e destino
+      posicoesEntre = zip -- monta as coordenadas usando as listas de todas os indices de linhas e colunas entre as posicoes
+        [liOrig + deltaLinha, liOrig + 2 * deltaLinha .. liDest - deltaLinha] --
+        [ciOrig + deltaColuna, ciOrig + 2 * deltaColuna .. ciDest - deltaColuna]
+  in all (\pos -> obterCasaPorIndice tab pos == Just Vazia) posicoesEntre -- função que checa se todos os elementos da lista cumprem a condição
+
+-- Função auxiliar para obter casa usando índices (linha,coluna) no Tabuleiro
+obterCasaPorIndice :: Tabuleiro -> (Int, Int) -> Maybe Casa
+obterCasaPorIndice tab (li, ci)
+  | li >= 0 && li < 8 && ci >= 0 && ci < 8 = Just ((tab !! li) !! ci)
+  | otherwise = Nothing
