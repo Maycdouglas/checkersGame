@@ -1,5 +1,7 @@
 module Tabuleiro where
 
+import Posicao
+
 import Control.Monad (guard) -- função guard da biblioteca Control.Monad
 -- usado em condições, permitindo que o fluxo prossiga se o retorno for True e gerando Nothing se for False
 -- usado em funções com muitas validações, como por exemplo a moverPeca e atualizarCasa
@@ -17,22 +19,19 @@ data Casa = Vazia | Ocupada Peca
 type Linha = [Casa]
 type Tabuleiro = [Linha]
 
--- Função para checar se a peça que será capturada é uma adversaria ou nao
-ehPecaAdversaria :: Peca -> Peca -> Bool
-ehPecaAdversaria PecaJogador1  p = p == PecaJogador2 || p == DamaJogador2
-ehPecaAdversaria DamaJogador1  p = p == PecaJogador2 || p == DamaJogador2
-ehPecaAdversaria PecaJogador2  p = p == PecaJogador1 || p == DamaJogador1
-ehPecaAdversaria DamaJogador2  p = p == PecaJogador1 || p == DamaJogador1
-
 -- Função que gera o tabuleiro inicial da partida
 tabuleiroInicial :: Tabuleiro
 tabuleiroInicial =
-    [ linhaJogador2 i | i <- [0..2] ] ++ -- posiciona as peças do jogador 2
-    replicate 2 linhaVazia ++ -- deixa as duas linhas do meio vazias
+    [ linhaJogador2 i | i <- [0..2] ] ++ -- posiciona as peças do jogador 2 -- posiciona as peças do jogador 2 -- posiciona as peças do jogador 2 -- posiciona as peças do jogador 2
+     -- posiciona as peças do jogador 2
+     -- posiciona as peças do jogador 2
+     -- posiciona as peças do jogador 2 -- posiciona as peças do jogador 2
+     -- posiciona as peças do jogador 2
+    replicate 2 linhaVazia ++ -- deixa as duas linhas do meio vazias -- deixa as duas linhas do meio vazias -- deixa as duas linhas do meio vazias -- deixa as duas linhas do meio vazias
     [ linhaJogador1 i | i <- [0..2] ] -- posiciona as peças do jogador 1
   where
-    linhaJogador2 i = [if (i + j) `mod` 2 == 1 then Ocupada PecaJogador2 else Vazia | j <- [0..7]]
-    linhaJogador1 i = [if (i + j) `mod` 2 == 0 then Ocupada PecaJogador1 else Vazia | j <- [0..7]]
+    linhaJogador2 i = [if odd (i + j) then Ocupada PecaJogador2 else Vazia | j <- [0..7]]
+    linhaJogador1 i = [if even (i + j) then Ocupada PecaJogador1 else Vazia | j <- [0..7]]
     linhaVazia = replicate 8 Vazia
 
 -- Função que exibe o tabuleiro no terminal
@@ -52,7 +51,7 @@ mostrarLinha numeroLinha linha =
 -- Função auxliar para mostrar a casa do tabuleiro
 mostrarCasa :: Int -> (Int, Casa) -> String
 mostrarCasa linhaIndex (colIndex, casa) =
-    let bg = if (linhaIndex + colIndex) `mod` 2 == 0 then bgBranco else bgPreto
+    let bg = if even (linhaIndex + colIndex) then bgBranco else bgPreto
         texto = case casa of
                     Vazia -> "   "
                     Ocupada PecaJogador1   -> corTexto "\x1b[34;1m" " o "
@@ -70,160 +69,3 @@ bgPreto s = "\x1b[40m" ++ s ++ "\x1b[0m"
 
 bgBranco :: String -> String
 bgBranco s = "\x1b[47m" ++ s ++ "\x1b[0m"
-
--- Função para verificar se a posição está dentro do tabuleiro e se é uma casa preta
-ehPosicaoValida :: (Int, Int) -> Bool
-ehPosicaoValida (linha, coluna) =
-    linha >= 0 && linha < 8 &&
-    coluna >= 0 && coluna < 8 &&
-    ((linha + coluna) `mod` 2 == 1)  -- somente casas pretas
-
--- Converte coluna de Char para índice Int (A=0, B=1, ..., H=7)
-colunaParaIndice :: Char -> Maybe Int
-colunaParaIndice c
-    | c >= 'A' && c <= 'H' = Just (fromEnum c - fromEnum 'A')
-    | otherwise = Nothing
-
--- Converte linha (1..8) para índice interno (0..7) invertendo o eixo vertical
-linhaParaIndice :: Int -> Maybe Int
-linhaParaIndice n
-    | n >= 1 && n <= 8 = Just (8 - n)
-    | otherwise = Nothing
-
--- Valida posição dada em formato de interface (linha, coluna) 
-ehPosicaoValidaInterface :: (Int, Char) -> Bool
-ehPosicaoValidaInterface (l, c) = case (linhaParaIndice l, colunaParaIndice c) of
-    (Just li, Just ci) -> ehPosicaoValida (li, ci)
-    _ -> False
-
--- Função para consultar o conteúdo de uma posição válido no tabuleiro
-obterCasa :: Tabuleiro -> (Int, Char) -> Maybe Casa
-obterCasa tab pos@(l, c) =
-    if ehPosicaoValidaInterface pos
-       then do
-           li <- linhaParaIndice l
-           ci <- colunaParaIndice c
-           Just ((tab !! li) !! ci) -- Acessa a linha do tabuleiro depois a casa da linha
-       else Nothing
-
--- Função para substituir um elemento de uma lista por outro 
-substituirNaLista :: [a] -> Int -> a -> [a]
-substituirNaLista lista idx novoElemento =
-    take idx lista ++ [novoElemento] ++ drop (idx + 1) lista
-
--- Atualiza a casa do tabuleiro para vazia ou ocupada, a depender do caso
-atualizarCasa :: Tabuleiro -> (Int, Char) -> Casa -> Maybe Tabuleiro
-atualizarCasa tab (l, c) novaCasa = do
-    li <- linhaParaIndice l
-    ci <- colunaParaIndice c
-    guard (ehPosicaoValida (li, ci))
-    let linhaNova = substituirNaLista (tab !! li) ci novaCasa
-        tabuleiroNovo = substituirNaLista tab li linhaNova
-    return tabuleiroNovo
-
-moverPeca :: Tabuleiro -> (Int, Char) -> (Int, Char) -> Maybe Tabuleiro
-moverPeca tab origem destino = do
-  -- Verifica se as duas posições são válidas
-  guard (ehPosicaoValidaInterface origem)
-  guard (ehPosicaoValidaInterface destino)
-
-  -- Pega a casa da origem
-  casaOrigem <- obterCasa tab origem
-
-  -- Verifica se tem peça na origem
-  case casaOrigem of
-    Vazia -> Nothing
-    Ocupada peca -> do
-      -- Verifica se a casa destino está vazia
-      casaDestino <- obterCasa tab destino
-      guard (casaDestino == Vazia)
-      -- Atualiza o tabuleiro: tirar da origem
-      tab1 <- atualizarCasa tab origem Vazia
-      -- Atualiza o tabuleiro: colocar na destino
-      tab2 <- atualizarCasa tab1 destino (Ocupada peca)
-
-      return tab2
-
--- verifica se um movimento simples é válido (sem captura de peças)
-movimentoSimplesValido :: Tabuleiro -> (Int, Char) -> (Int, Char) -> Bool
-movimentoSimplesValido tab origem destino = 
-    case (linhaParaIndice (fst origem), colunaParaIndice (snd origem), -- fst e snd são funcoes haskell que retornam os elementos da tupla
-          linhaParaIndice (fst destino), colunaParaIndice (snd destino)) of
-        (Just liOrig, Just ciOrig, Just liDest, Just ciDest) ->
-            let 
-                deltaLinha = liDest - liOrig
-                deltaColuna = ciDest - ciOrig
-                casaOrigem = obterCasa tab origem
-                casaDestino = obterCasa tab destino
-            in
-                case casaOrigem of
-                    Just (Ocupada peca) ->
-                        casaDestino == Just Vazia &&
-                        abs deltaColuna == 1 &&
-                        case peca of
-                            PecaJogador1  -> deltaLinha == -1 -- sobe
-                            PecaJogador2  -> deltaLinha == 1  -- desce
-                            DamaJogador1  -> abs deltaLinha == 1 -- sobe ou desce
-                            DamaJogador2  -> abs deltaLinha == 1 -- sobe ou desce
-                    _ -> False
-        _ -> False
-
--- Verifica se uma captura simples é válida (não funciona para captura de damas)
-movimentoCapturaValido :: Tabuleiro -> (Int, Char) -> (Int, Char) -> Bool
-movimentoCapturaValido tab origem destino =
-    case (linhaParaIndice (fst origem), colunaParaIndice (snd origem),
-          linhaParaIndice (fst destino), colunaParaIndice (snd destino)) of
-        (Just liOrig, Just ciOrig, Just liDest, Just ciDest) ->
-            let 
-                deltaLinha = liDest - liOrig
-                deltaColuna = ciDest - ciOrig
-
-                -- Posição da peça no meio
-                meioLinha = liOrig + deltaLinha `div` 2
-                meioColuna = ciOrig + deltaColuna `div` 2
-
-                posMeio = (8 - meioLinha, toEnum (fromEnum 'A' + meioColuna) :: Char) -- converte para numero a coluna depois soma e volta para letra
-
-                casaOrigem = obterCasa tab origem
-                casaMeio   = obterCasa tab posMeio
-                casaDestino = obterCasa tab destino
-            in
-                case casaOrigem of
-                    Just (Ocupada pecaOrigem) ->
-                        abs deltaLinha == 2 && abs deltaColuna == 2 &&
-                        casaDestino == Just Vazia &&
-                        case casaMeio of
-                            Just (Ocupada pecaMeio) -> ehPecaAdversaria pecaOrigem pecaMeio -- retorno positivo
-                            _ -> False
-                    _ -> False
-        _ -> False
-
--- Função para capturar uma peça de forma simples (não funciona para dama)
-capturarPeca :: Tabuleiro -> (Int, Char) -> (Int, Char) -> Maybe Tabuleiro
-capturarPeca tab origem destino = do
-    -- Verifica se a captura é válida
-    guard (movimentoCapturaValido tab origem destino)
-
-    casaOrigem <- obterCasa tab origem
-    case casaOrigem of
-        Vazia -> Nothing
-        Ocupada peca -> do
-            liOrig <- linhaParaIndice (fst origem)
-            ciOrig <- colunaParaIndice (snd origem)
-            liDest <- linhaParaIndice (fst destino)
-            ciDest <- colunaParaIndice (snd destino)
-
-            -- Calcula a posição da peça capturada
-            let meioLinha = liOrig + (liDest - liOrig) `div` 2
-                meioColuna = ciOrig + (ciDest - ciOrig) `div` 2
-                posMeio = (8 - meioLinha, toEnum (fromEnum 'A' + meioColuna) :: Char) -- converte para numero a coluna depois soma e volta para letra
-
-            -- por aqui que vai entrar função para impedir que capture somente uma peça ao invés de várias
-
-            -- Remove a peça capturada
-            tab1 <- atualizarCasa tab posMeio Vazia
-            -- Move a peça de origem para destino
-            tab2 <- atualizarCasa tab1 origem Vazia
-            tab3 <- atualizarCasa tab2 destino (Ocupada peca)
-
-            return tab3
