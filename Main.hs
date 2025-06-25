@@ -1,6 +1,8 @@
 module Main where -- Define um módulo Main
 
 import Tabuleiro -- importa o módulo Tabuleiro criado por mim
+import Movimento
+import Posicao
 import Data.Char (toUpper) -- importa função toUpper do módulo Data.Char para converter letra minúscula em letra maiúscula | Usado em lerPosicao
 import Text.Read (readMaybe) -- importa função readMaybe para tentar converter uma string par anúmero de forma segura | usado no lerPosicao
 
@@ -49,36 +51,40 @@ loopJogo tab jogadorAtual = do
     case (lerPosicao origemStr, lerPosicao destinoStr) of
         (Just origem, Just destino) -> do
             -- Verifica se na origem existe peça e a quem pertence
-            case obterCasa tab origem of
-                Just (Ocupada peca)
-                    | pecaPertenceAoJogador peca jogadorAtual -> -- | É como se fosse um AND quando usado no case
-                        -- Verifica é possível capturar
-                        if movimentoCapturaValido tab origem destino
-                            then case capturarPeca tab origem destino of
-                                Just tabNovo -> do
-                                    putStrLn "Captura realizada!"
-                                    loopJogo tabNovo (trocarJogador jogadorAtual)
-                                Nothing -> do
-                                    putStrLn "Erro ao capturar. Tente novamente."
+            if not (ehPosicaoValidaInterface origem) -- veriicacao para quando o usuário tenta usar uma casa branca como origem
+                then do
+                    putStrLn "Casa inválida! Escolha apenas casas pretas do tabuleiro."
+                    loopJogo tab jogadorAtual
+                else
+                    case obterCasa tab origem of
+                        Just (Ocupada peca)
+                            | pecaPertenceAoJogador peca jogadorAtual -> -- | É como se fosse um AND quando usado no case
+                                -- Verifica é possível capturar
+                                if movimentoCapturaValido tab origem destino
+                                    then case capturarPeca tab origem destino of
+                                        Just tabNovo -> do
+                                            putStrLn "Captura realizada!"
+                                            loopJogo tabNovo (trocarJogador jogadorAtual)
+                                        Nothing -> do
+                                            putStrLn "Erro ao capturar. Tente novamente."
+                                            loopJogo tab jogadorAtual
+                                -- Verifica se é um movimento simples válido
+                                else if movimentoSimplesValido tab origem destino
+                                    then case moverPeca tab origem destino of
+                                        Just tabNovo -> loopJogo tabNovo (trocarJogador jogadorAtual)
+                                        Nothing -> do
+                                            putStrLn "Erro ao mover peça. Tente novamente."
+                                            loopJogo tab jogadorAtual
+                                -- Não foi captura simples nem movimento simples, logo, movimento inválido - POR ENQUANTO, tem a questão das DAMAS AINDA
+                                else do
+                                    putStrLn "Movimento inválido! Tente novamente."
                                     loopJogo tab jogadorAtual
-                        -- Verifica se é um movimento simples válido
-                        else if movimentoSimplesValido tab origem destino
-                            then case moverPeca tab origem destino of
-                                Just tabNovo -> loopJogo tabNovo (trocarJogador jogadorAtual)
-                                Nothing -> do
-                                    putStrLn "Erro ao mover peça. Tente novamente."
-                                    loopJogo tab jogadorAtual
-                        -- Não foi captura simples nem movimento simples, logo, movimento inválido - POR ENQUANTO, tem a questão das DAMAS AINDA
-                        else do
-                            putStrLn "Movimento inválido! Tente novamente."
+                        Just Vazia -> do
+                            putStrLn "Não há peça na posição de origem. Tente novamente."
+                            loopJogo tab jogadorAtual    
+                        _ -> do
+                            putStrLn "Essa peça não pertence a você! Escolha uma peça sua."
                             loopJogo tab jogadorAtual
-                Just Vazia -> do
-                    putStrLn "Não há peça na posição de origem. Tente novamente."
-                    loopJogo tab jogadorAtual
-                _ -> do
-                    putStrLn "Essa peça não pertence a você! Escolha uma peça sua."
-                    loopJogo tab jogadorAtual
-
         _ -> do
             putStrLn "Entrada inválida! Tente novamente."
             loopJogo tab jogadorAtual
@@ -87,68 +93,6 @@ loopJogo tab jogadorAtual = do
 nomeJogadorColorido :: Jogador -> String
 nomeJogadorColorido Jogador1 = corTexto "\x1b[34;1m" "Jogador 1"  -- Azul
 nomeJogadorColorido Jogador2 = corTexto "\x1b[33;1m" "Jogador 2"  -- Amarelo
-
-
---LOOP COM CAPTURA DE PEÇAS FUNCIONANDO
--- loopJogo :: Tabuleiro -> Jogador -> IO ()
--- loopJogo tab jogadorAtual = do
---     putStrLn $ "\nTurno do " ++ show jogadorAtual
---     mostrarTabuleiro tab
---     putStrLn "Digite posição origem (ex: 6B): "
---     origemStr <- getLine
---     putStrLn "Digite posição destino (ex: 5A): "
---     destinoStr <- getLine
-
---     case (lerPosicao origemStr, lerPosicao destinoStr) of
---         (Just origem, Just destino) 
---           | movimentoCapturaValido tab origem destino -> 
---                 case capturarPeca tab origem destino of
---                     Just tabNovo -> do
---                         putStrLn "Captura realizada!"
---                         loopJogo tabNovo (trocarJogador jogadorAtual)
---                     Nothing -> do
---                         putStrLn "Erro ao capturar. Tente novamente."
---                         loopJogo tab jogadorAtual
-
---           | movimentoSimplesValido tab origem destino -> 
---                 case moverPeca tab origem destino of
---                     Just tabNovo -> loopJogo tabNovo (trocarJogador jogadorAtual)
---                     Nothing -> do
---                         putStrLn "Erro ao mover peça. Tente novamente."
---                         loopJogo tab jogadorAtual
-
---           | otherwise -> do
---                 putStrLn "Movimento inválido! Tente novamente."
---                 loopJogo tab jogadorAtual
-
---         _ -> do
---             putStrLn "Entrada inválida! Tente novamente."
---             loopJogo tab jogadorAtual
-
---LOOP COM MOVIMENTAÇAO FUNCIONANDO
--- loopJogo :: Tabuleiro -> Jogador -> IO ()
--- loopJogo tab jogadorAtual = do
---     putStrLn $ "\nTurno do " ++ show jogadorAtual
---     mostrarTabuleiro tab
---     putStrLn "Digite posição origem (ex: 6B): "
---     origemStr <- getLine
---     putStrLn "Digite posição destino (ex: 5A): "
---     destinoStr <- getLine
-
---     case (lerPosicao origemStr, lerPosicao destinoStr) of
---         (Just origem, Just destino) -> 
---             if movimentoSimplesValido tab origem destino
---                 then case moverPeca tab origem destino of
---                         Just tabNovo -> loopJogo tabNovo (trocarJogador jogadorAtual)
---                         Nothing -> do
---                             putStrLn "Erro ao mover a peça! Tente novamente."
---                             loopJogo tab jogadorAtual
---                 else do
---                     putStrLn "Movimento inválido! Tente novamente."
---                     loopJogo tab jogadorAtual
---         _ -> do
---             putStrLn "Entrada inválida! Tente novamente."
---             loopJogo tab jogadorAtual
 
 
 -- Função para alternar entre jogadores no LoopJogo
