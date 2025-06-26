@@ -1,5 +1,8 @@
 module Posicao where
 
+import Data.Char (toUpper) -- importa função toUpper do módulo Data.Char para converter letra minúscula em letra maiúscula | Usado em lerPosicao
+import Text.Read (readMaybe) -- importa função readMaybe para tentar converter uma string par anúmero de forma segura | usado no lerPosicao
+
 -- Converte coluna de Char para índice Int (A=0, B=1, ..., H=7)
 colunaParaIndice :: Char -> Maybe Int
 colunaParaIndice c
@@ -24,3 +27,11 @@ ehPosicaoValidaInterface :: (Int, Char) -> Bool
 ehPosicaoValidaInterface (l, c) = case (linhaParaIndice l, colunaParaIndice c) of
     (Just li, Just ci) -> ehPosicaoValida (li, ci)
     _ -> False
+
+-- Converte entrada "6 B" para posição (Int, Char), ou seja, (6, 'B')
+-- usa o readMaybe para não dar erro em tempo de execução no caso do usuário tentar uma entrada como XB, por exemplo
+lerPosicao :: String -> Maybe (Int, Char)
+lerPosicao [l, c]
+  | c >= 'a' && c <= 'h' = (,) <$> readMaybe [l] <*> Just (toUpper c)
+  | c >= 'A' && c <= 'H' = (,) <$> readMaybe [l] <*> Just c
+lerPosicao _ = Nothing

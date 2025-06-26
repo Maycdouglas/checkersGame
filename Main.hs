@@ -3,8 +3,6 @@ module Main where -- Define um módulo Main
 import Tabuleiro -- importa o módulo Tabuleiro criado por mim
 import Movimento
 import Posicao
-import Data.Char (toUpper) -- importa função toUpper do módulo Data.Char para converter letra minúscula em letra maiúscula | Usado em lerPosicao
-import Text.Read (readMaybe) -- importa função readMaybe para tentar converter uma string par anúmero de forma segura | usado no lerPosicao
 
 -- Tipo para identificar o jogador atual
 -- Cria um tipo algébrico com apenas dois valores possíveis
@@ -20,14 +18,6 @@ pecaPertenceAoJogador DamaJogador1 Jogador1 = True
 pecaPertenceAoJogador PecaJogador2 Jogador2 = True
 pecaPertenceAoJogador DamaJogador2 Jogador2 = True
 pecaPertenceAoJogador _ _ = False
-
--- Converte entrada "6 B" para posição (Int, Char), ou seja, (6, 'B')
--- usa o readMaybe para não dar erro em tempo de execução no caso do usuário tentar uma entrada como XB, por exemplo
-lerPosicao :: String -> Maybe (Int, Char)
-lerPosicao [l, c]
-  | c >= 'a' && c <= 'h' = (,) <$> readMaybe [l] <*> Just (toUpper c)
-  | c >= 'A' && c <= 'H' = (,) <$> readMaybe [l] <*> Just c
-lerPosicao _ = Nothing
 
 -- Loop principal do jogo
 
