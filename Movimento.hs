@@ -134,9 +134,53 @@ movimentoCapturaValido tab origem destino =
                     _ -> False
         _ -> False
 
--- Função para capturar uma peça de forma simples (não funciona para dama)
+-- Verifica se uma captura por dama é válida
+movimentoCapturaDamaValido :: Tabuleiro -> (Int, Char) -> (Int, Char) -> Bool
+movimentoCapturaDamaValido tab origem destino =
+    case (obterCasa tab origem, obterCasa tab destino) of
+        (Just (Ocupada peca), Just Vazia)
+            | ehDama peca ->
+                case (linhaParaIndice (fst origem), colunaParaIndice (snd origem),
+                      linhaParaIndice (fst destino), colunaParaIndice (snd destino)) of
+                    (Just liOrig, Just ciOrig, Just liDest, Just ciDest) ->
+                        let
+                            -- Verifica se está na diagonal
+                            deltaLinha = liDest - liOrig
+                            deltaColuna = ciDest - ciOrig
+                            emDiagonal = abs deltaLinha == abs deltaColuna
+
+                            -- Gera todas as posições entre origem e destino (excluindo extremos)
+                            direcaoLinha = if deltaLinha > 0 then 1 else -1
+                            direcaoColuna = if deltaColuna > 0 then 1 else -1
+                            posicoesEntre = zip
+                                [liOrig + direcaoLinha, liOrig + 2 * direcaoLinha .. liDest - direcaoLinha]
+                                [ciOrig + direcaoColuna, ciOrig + 2 * direcaoColuna .. ciDest - direcaoColuna]
+
+                            casasEntre = map (obterCasaPorIndice tab) posicoesEntre
+                            ocupadas = filter (/= Just Vazia) casasEntre
+                        in
+                            emDiagonal &&
+                            length ocupadas == 1 &&
+                            case head ocupadas of
+                                Just (Ocupada pecaAlvo) -> ehPecaAdversaria peca pecaAlvo
+                                _ -> False
+                    _ -> False
+        _ -> False
+
 capturarPeca :: Tabuleiro -> (Int, Char) -> (Int, Char) -> Maybe Tabuleiro
 capturarPeca tab origem destino = do
+    casaOrigem <- obterCasa tab origem
+    case casaOrigem of
+        Ocupada peca
+            | ehDama peca && movimentoCapturaDamaValido tab origem destino ->
+                capturarDama tab origem destino
+            | not (ehDama peca) && movimentoCapturaValido tab origem destino ->
+                capturarPecaSimples tab origem destino
+        _ -> Nothing
+
+-- Função para capturar uma peça de forma simples (não funciona para dama)
+capturarPecaSimples :: Tabuleiro -> (Int, Char) -> (Int, Char) -> Maybe Tabuleiro
+capturarPecaSimples tab origem destino = do
     -- Verifica se a captura é válida
     guard (movimentoCapturaValido tab origem destino)
 
@@ -167,6 +211,49 @@ capturarPeca tab origem destino = do
             tab3 <- atualizarCasa tab2 destino (Ocupada novaPeca)
 
             return tab3
+
+-- Captura por uma dama
+capturarDama :: Tabuleiro -> (Int, Char) -> (Int, Char) -> Maybe Tabuleiro
+capturarDama tab origem destino = do
+    -- Verifica se a captura é válida
+    guard (movimentoCapturaDamaValido tab origem destino)
+
+    -- Obtém a peça de origem (dama)
+    casaOrigem <- obterCasa tab origem
+    peca <- case casaOrigem of
+        Ocupada p -> Just p
+        _ -> Nothing
+
+    -- Converte posições para índices
+    liOrig <- linhaParaIndice (fst origem)
+    ciOrig <- colunaParaIndice (snd origem)
+    liDest <- linhaParaIndice (fst destino)
+    ciDest <- colunaParaIndice (snd destino)
+
+    -- Calcula direção do movimento
+    let deltaLinha = if liDest > liOrig then 1 else -1
+        deltaColuna = if ciDest > ciOrig then 1 else -1
+
+        -- Gera as posições entre origem e destino (excluindo extremos)
+        posicoesEntre = zip
+            [liOrig + deltaLinha, liOrig + 2 * deltaLinha .. liDest - deltaLinha]
+            [ciOrig + deltaColuna, ciOrig + 2 * deltaColuna .. ciDest - deltaColuna]
+
+        -- Encontra a posição da peça a ser capturada
+        pecaCapturadaIdx = head [ (li, ci) | (li, ci) <- posicoesEntre,
+                                             obterCasaPorIndice tab (li, ci) /= Just Vazia ]
+
+    -- Converte o índice da peça capturada para interface
+    let posCaptura = (8 - fst pecaCapturadaIdx, toEnum (fromEnum 'A' + snd pecaCapturadaIdx) :: Char)
+
+    -- Remove peça capturada
+    tab1 <- atualizarCasa tab posCaptura Vazia
+    -- Remove dama da origem
+    tab2 <- atualizarCasa tab1 origem Vazia
+    -- Coloca dama no destino
+    tab3 <- atualizarCasa tab2 destino (Ocupada peca)
+
+    return tab3
 
 -- Verifica se o caminho entre duas posições está livre (exceto as extremidades)
 caminhoLivre :: Tabuleiro -> (Int, Int) -> (Int, Int) -> Bool

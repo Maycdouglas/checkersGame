@@ -58,23 +58,17 @@ loopJogo tab jogadorAtual = do
                 else
                     case obterCasa tab origem of
                         Just (Ocupada peca)
-                            | pecaPertenceAoJogador peca jogadorAtual -> -- | É como se fosse um AND quando usado no case
-                                -- Verifica é possível capturar
-                                if movimentoCapturaValido tab origem destino
-                                    then case capturarPeca tab origem destino of
-                                        Just tabNovo -> do
-                                            putStrLn "Captura realizada!"
-                                            loopJogo tabNovo (trocarJogador jogadorAtual)
-                                        Nothing -> do
-                                            putStrLn "Erro ao capturar. Tente novamente."
-                                            loopJogo tab jogadorAtual
-                                -- Verifica se é um movimento simples válido
-                                else 
-                                    case moverPeca tab origem destino of
-                                        Just tabNovo -> loopJogo tabNovo (trocarJogador jogadorAtual)
-                                        Nothing -> do
-                                            putStrLn "Movimento inválido! Tente novamente."
-                                            loopJogo tab jogadorAtual
+                            | pecaPertenceAoJogador peca jogadorAtual -> do
+                                case capturarPeca tab origem destino of
+                                    Just tabNovo -> do
+                                        putStrLn "Captura realizada!"
+                                        loopJogo tabNovo (trocarJogador jogadorAtual)
+                                    Nothing ->
+                                        case moverPeca tab origem destino of
+                                            Just tabNovo -> loopJogo tabNovo (trocarJogador jogadorAtual)
+                                            Nothing -> do
+                                                putStrLn "Movimento inválido! Tente novamente."
+                                                loopJogo tab jogadorAtual
                         Just Vazia -> do
                             putStrLn "Não há peça na posição de origem. Tente novamente."
                             loopJogo tab jogadorAtual    
