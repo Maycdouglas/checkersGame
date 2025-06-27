@@ -6,7 +6,7 @@ import Control.Monad (guard) -- função guard da biblioteca Control.Monad
 -- usado em condições, permitindo que o fluxo prossiga se o retorno for True e gerando Nothing se for False
 -- usado em funções com muitas validações, como por exemplo a moverPeca e atualizarCasa
 
-data Peca = PecaJogador1 | PecaJogador2 | DamaJogador1 | DamaJogador2
+data Peca = PecaJogador1 | PecaJogador2 | DamaJogador1 | DamaJogador2 | Semicapturada Peca
     deriving (Eq, Show)
 -- usa o Eq para poder comparar se dois jogadores são iguais ou diferentes
 -- usa o Show para poder converter o texto para String
@@ -80,8 +80,11 @@ mostrarCasa linhaIndex (colIndex, casa) =
     let bg = if even (linhaIndex + colIndex) then bgBranco else bgPreto
         texto = case casa of
                     Vazia -> "   "
-                    Ocupada PecaJogador1   -> corTexto "\x1b[34;1m" " o "
-                    Ocupada PecaJogador2   -> corTexto "\x1b[33;1m" " o "
+                    Ocupada (Semicapturada DamaJogador1) -> corTexto "\x1b[37;1m" " D "
+                    Ocupada (Semicapturada DamaJogador2) -> corTexto "\x1b[37;1m" " D "
+                    Ocupada (Semicapturada _)            -> corTexto "\x1b[37;1m" " o " -- Branco
+                    Ocupada PecaJogador1   -> corTexto "\x1b[34;1m" " o " -- Azul
+                    Ocupada PecaJogador2   -> corTexto "\x1b[33;1m" " o " -- Amarelo
                     Ocupada DamaJogador1   -> corTexto "\x1b[34;1m" " D "
                     Ocupada DamaJogador2   -> corTexto "\x1b[33;1m" " D "
     in bg texto ++ "║"

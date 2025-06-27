@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# HLINT ignore "Redundant return" #-}
 module Movimento where
 
 import Tabuleiro
@@ -169,6 +171,11 @@ movimentoCapturaDamaValido tab origem destino =
                     _ -> False
         _ -> False
 
+capturarPecaComPos :: Tabuleiro -> (Int, Char) -> (Int, Char) -> Maybe (Tabuleiro, (Int, Char))
+capturarPecaComPos tab origem destino = do
+    novoTab <- capturarPeca tab origem destino
+    return (novoTab, destino)
+
 capturarPeca :: Tabuleiro -> (Int, Char) -> (Int, Char) -> Maybe Tabuleiro
 capturarPeca tab origem destino = do
     casaOrigem <- obterCasa tab origem
@@ -200,17 +207,21 @@ capturarPecaSimples tab origem destino = do
                 meioColuna = ciOrig + (ciDest - ciOrig) `div` 2
                 posMeio = (8 - meioLinha, toEnum (fromEnum 'A' + meioColuna) :: Char) -- converte para numero a coluna depois soma e volta para letra
 
-            -- por aqui que vai entrar função para impedir que capture somente uma peça ao invés de várias
+            -- Em vez de remover, marca como semicapturada
+            casaMeio <- obterCasa tab posMeio
+            novaCasaMeio <- case casaMeio of
+                Ocupada p -> Just (Ocupada (Semicapturada p))
+                _ -> Nothing
 
             -- Remove a peça capturada
-            tab1 <- atualizarCasa tab posMeio Vazia
+            tab1 <- atualizarCasa tab posMeio novaCasaMeio
             -- Move a peça de origem para destino
             tab2 <- atualizarCasa tab1 origem Vazia
 
             -- Avalia se deve promover a peça para dama
             let novaPeca = avaliarPromocaoParaDama destino peca
 
-            tab3 <- atualizarCasa tab2 destino (Ocupada novaPeca)
+            tab3 <- atualizarCasa tab2 destino (Ocupada peca)
 
             return tab3
 
@@ -248,8 +259,14 @@ capturarDama tab origem destino = do
     -- Converte o índice da peça capturada para interface
     let posCaptura = (8 - fst pecaCapturadaIdx, toEnum (fromEnum 'A' + snd pecaCapturadaIdx) :: Char)
 
+    -- Em vez de remover, marca como semicapturada
+    casaCapturada <- obterCasa tab posCaptura
+    novaCasaCaptura <- case casaCapturada of
+        Ocupada p -> Just (Ocupada (Semicapturada p))
+        _ -> Nothing
+
     -- Remove peça capturada
-    tab1 <- atualizarCasa tab posCaptura Vazia
+    tab1 <- atualizarCasa tab posCaptura novaCasaCaptura
     -- Remove dama da origem
     tab2 <- atualizarCasa tab1 origem Vazia
     -- Coloca dama no destino
@@ -332,3 +349,10 @@ simularCapturaSimples tab origem destino = do
 
             return tab3
         _ -> Nothing
+
+removerSemicapturadas :: Tabuleiro -> Tabuleiro
+removerSemicapturadas =
+    map (map remover)
+  where
+    remover (Ocupada (Semicapturada _)) = Vazia
+    remover outra = outra

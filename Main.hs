@@ -65,11 +65,15 @@ loopJogo tab jogadorAtual = do
                     case obterCasa tab origem of
                         Just (Ocupada peca)
                             | pecaPertenceAoJogador peca jogadorAtual -> do
-                                case capturarPeca tab origem destino of
-                                    Just tabNovo -> do
+                                -- Tentativa de captura
+                                case capturarPecaComPos tab origem destino of
+                                    Just (tabApósCaptura, novaPos) -> do
                                         putStrLn "Captura realizada!"
-                                        loopJogo tabNovo (trocarJogador jogadorAtual)
-                                    Nothing ->
+                                        mostrarTabuleiro tabApósCaptura
+                                        tabFinal <- loopCapturasSequenciais tabApósCaptura novaPos jogadorAtual
+                                        loopJogo tabFinal (trocarJogador jogadorAtual)
+                                    Nothing -> 
+                                        -- Tentativa de movimento simples
                                         case moverPeca tab origem destino of
                                             Just tabNovo -> loopJogo tabNovo (trocarJogador jogadorAtual)
                                             Nothing -> do
@@ -184,4 +188,31 @@ melhoresCapturas tab jogador =
                     maxLen = maximum (map (length . snd) todasCapturas)
                     melhores = filter (\(_, seq) -> length seq == maxLen) todasCapturas
                 in Just melhores
+
+loopCapturasSequenciais :: Tabuleiro -> (Int, Char) -> Jogador -> IO Tabuleiro
+loopCapturasSequenciais tab pos jogador = do
+    let capturas = sequenciasCapturaSimples tab pos
+    case capturas of
+        [] -> do
+            putStrLn "Nenhuma captura possível a partir daqui."
+            return tab
+        _ -> do
+            let melhores = filter (\seq -> length seq == maximum (map length capturas)) capturas
+            case melhores of
+                [] -> return tab
+                (melhorSeq:_) -> fazerCapturas tab pos melhorSeq
+  where
+    fazerCapturas t _ [] = do
+        -- Ao final, limpa as semicapturadas
+        -- aqui entra a correção da promoção da dama
+        return (removerSemicapturadas t)
+    fazerCapturas t atual (prox:resto) = do
+        case capturarPecaComPos t atual prox of
+            Just (novoTab, novaPos) -> do
+                mostrarTabuleiro novoTab
+                putStrLn $ "Captura para " ++ show novaPos ++ " realizada!"
+                fazerCapturas novoTab novaPos resto
+            Nothing -> do
+                putStrLn $ "Erro ao tentar capturar para " ++ show prox
+                return t
 
