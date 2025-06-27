@@ -202,10 +202,14 @@ loopCapturasSequenciais tab pos jogador = do
                 [] -> return tab
                 (melhorSeq:_) -> fazerCapturas tab pos melhorSeq
   where
-    fazerCapturas t _ [] = do
-        -- Ao final, limpa as semicapturadas
-        -- aqui entra a correção da promoção da dama
-        return (removerSemicapturadas t)
+    fazerCapturas t ultimaPos [] = do
+        case obterCasa t ultimaPos of
+            Just (Ocupada peca) -> do
+                let novaPeca = avaliarPromocaoParaDama ultimaPos peca
+                case atualizarCasa t ultimaPos (Ocupada novaPeca) of
+                    Just t1 -> return (removerSemicapturadas t1)
+                    Nothing -> return (removerSemicapturadas t) -- falha ao atualizar
+            _ -> return (removerSemicapturadas t)  -- Ao final, limpa as semicapturadas   
     fazerCapturas t atual (prox:resto) = do
         case capturarPecaComPos t atual prox of
             Just (novoTab, novaPos) -> do
