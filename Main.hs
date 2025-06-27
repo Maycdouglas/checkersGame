@@ -3,6 +3,9 @@ module Main where -- Define um módulo Main
 import Tabuleiro -- importa o módulo Tabuleiro criado por mim
 import Movimento
 import Posicao
+import Data.List (maximumBy, intercalate)
+import Data.Ord (comparing)
+
 
 -- Tipo para identificar o jogador atual
 -- Cria um tipo algébrico com apenas dois valores possíveis
@@ -32,6 +35,15 @@ loopJogo :: Tabuleiro -> Jogador -> IO ()
 loopJogo tab jogadorAtual = do
     putStrLn $ "\nTurno do " ++ nomeJogadorColorido jogadorAtual
     mostrarTabuleiro tab
+
+    --NOVO: Exibir sugestão de melhor jogada
+    case melhorCaptura tab jogadorAtual of
+        Just (origem, caminho@(_:_)) -> do
+            putStrLn "Melhor sequência de captura disponível:"
+            putStrLn $ "  Origem: " ++ show origem
+            putStrLn $ "  Sequência: " ++ intercalate " -> " (map show caminho)
+        _ -> return ()
+
     putStrLn "Digite posição origem (ex: 6B): "
     origemStr <- getLine
     putStrLn "Digite posição destino (ex: 5A): "
@@ -123,3 +135,30 @@ iniciarJogo jogadorVsMaquina jogadorComeca = do
     putStrLn $ "Quem começa: " ++ 
         if jogadorComeca then "Jogador (ou Máquina 1)" else "Máquina (ou Máquina 2)"
     loopJogo tabuleiroInicial (if jogadorComeca then Jogador1 else Jogador2)
+
+posicoesDoJogador :: Tabuleiro -> Jogador -> [(Int, Char)]
+posicoesDoJogador tab jogador = 
+    [ (8 - li, toEnum (fromEnum 'A' + ci)) 
+    | (li, linha) <- zip [0..] tab
+    , (ci, casa) <- zip [0..] linha
+    , Ocupada peca <- [casa]
+    , pecaPertenceAoJogador peca jogador
+    ]
+
+melhorCaptura :: Tabuleiro -> Jogador -> Maybe ((Int, Char), [(Int, Char)])
+melhorCaptura tab jogador =
+    let
+        todasPosicoes = posicoesDoJogador tab jogador
+
+        -- Para cada posição, obtém todas as sequências de captura possíveis
+        todasCapturas = 
+            [ (origem, seq) 
+            | origem <- todasPosicoes
+            , seq <- sequenciasCapturaSimples tab origem
+            , not (null seq)
+            ]
+
+    in if null todasCapturas
+        then Nothing
+        else Just $ maximumBy (comparing (length . snd)) todasCapturas
+

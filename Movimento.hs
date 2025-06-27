@@ -3,6 +3,8 @@ module Movimento where
 import Tabuleiro
 import Posicao
 import Control.Monad (guard)
+import Data.Maybe (maybeToList)
+import Debug.Trace (trace)
 
 -- Move peça de acordo se é uma dama ou uma peça comum
 moverPeca :: Tabuleiro -> (Int, Char) -> (Int, Char) -> Maybe Tabuleiro
@@ -271,3 +273,62 @@ obterCasaPorIndice :: Tabuleiro -> (Int, Int) -> Maybe Casa
 obterCasaPorIndice tab (li, ci)
   | li >= 0 && li < 8 && ci >= 0 && ci < 8 = Just ((tab !! li) !! ci)
   | otherwise = Nothing
+
+-- wrapper público: chama o helper com visited contendo apenas a origem
+sequenciasCapturaSimples :: Tabuleiro -> (Int, Char) -> [[(Int, Char)]]
+sequenciasCapturaSimples tab origem =
+  buscar tab origem [origem]
+  where
+    -- buscar tabAtual posAtual visited retorna todas as sequências a partir de posAtual
+    buscar :: Tabuleiro -> (Int, Char) -> [(Int, Char)] -> [[(Int, Char)]]
+    buscar tabAtual posAtual visited =
+      let
+        -- direções de captura simples
+        direcoes = [(-2,-2),(-2,2),(2,-2),(2,2)]
+
+        -- para cada direção, tenta achar um destino válido
+        capturasPossiveis =
+          do
+            (dl,dc) <- direcoes
+            liOrig   <- maybeToList $ linhaParaIndice (fst posAtual)
+            ciOrig   <- maybeToList $ colunaParaIndice (snd posAtual)
+            let liDest = liOrig + dl
+                ciDest = ciOrig + dc
+                destino = (8 - liDest, toEnum (fromEnum 'A' + ciDest))
+            guard (ehPosicaoValidaInterface destino)
+            guard (movimentoCapturaValido tabAtual posAtual destino)
+            guard (destino `notElem` visited)  -- **bloqueio do ciclo**
+            return destino
+
+      in case capturasPossiveis of
+           []  -> [[]]  -- não tem mais capturas: sequência acabou
+           dsts -> concatMap (\destino ->
+                     case simularCapturaSimples tabAtual posAtual destino of
+                       Just tabNovo ->
+                         -- na recursão, adicionamos destino em visited
+                         map (destino :) (buscar tabNovo destino (destino:visited))
+                       Nothing -> []
+                   ) dsts
+
+-- Função auxiliar que simula uma captura simples sem modificar o tabuleiro original
+simularCapturaSimples :: Tabuleiro -> (Int, Char) -> (Int, Char) -> Maybe Tabuleiro
+simularCapturaSimples tab origem destino = do
+    guard (movimentoCapturaValido tab origem destino)
+    casaOrigem <- obterCasa tab origem
+    case casaOrigem of
+        Ocupada peca -> do
+            liOrig <- linhaParaIndice (fst origem)
+            ciOrig <- colunaParaIndice (snd origem)
+            liDest <- linhaParaIndice (fst destino)
+            ciDest <- colunaParaIndice (snd destino)
+
+            let meioLinha = liOrig + (liDest - liOrig) `div` 2
+                meioColuna = ciOrig + (ciDest - ciOrig) `div` 2
+                posMeio = (8 - meioLinha, toEnum (fromEnum 'A' + meioColuna) :: Char)
+
+            tab1 <- atualizarCasa tab posMeio Vazia
+            tab2 <- atualizarCasa tab origem Vazia
+            tab3 <- atualizarCasa tab2 destino (Ocupada peca)
+
+            return tab3
+        _ -> Nothing
