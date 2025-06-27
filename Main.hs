@@ -3,7 +3,7 @@ module Main where -- Define um módulo Main
 import Tabuleiro -- importa o módulo Tabuleiro criado por mim
 import Movimento
 import Posicao
-import Data.List (maximumBy, intercalate)
+import Data.List (maximumBy, intercalate, maximum)
 import Data.Ord (comparing)
 
 
@@ -36,13 +36,17 @@ loopJogo tab jogadorAtual = do
     putStrLn $ "\nTurno do " ++ nomeJogadorColorido jogadorAtual
     mostrarTabuleiro tab
 
-    --NOVO: Exibir sugestão de melhor jogada
-    case melhorCaptura tab jogadorAtual of
-        Just (origem, caminho@(_:_)) -> do
-            putStrLn "Melhor sequência de captura disponível:"
-            putStrLn $ "  Origem: " ++ show origem
-            putStrLn $ "  Sequência: " ++ intercalate " -> " (map show caminho)
-        _ -> return ()
+    --NOVO: Exibir sugestão de melhores jogadas
+    case melhoresCapturas tab jogadorAtual of
+        Just sequencias -> do
+            putStrLn "Melhores sequências de captura disponíveis:"
+            mapM_ (\(origem, seq) -> do
+                putStrLn $ "Origem: " ++ show origem
+                putStrLn $ "Sequência: " ++ intercalate " -> " (map show seq)
+                putStrLn ""
+              ) sequencias
+        Nothing -> return ()
+
 
     putStrLn "Digite posição origem (ex: 6B): "
     origemStr <- getLine
@@ -161,4 +165,23 @@ melhorCaptura tab jogador =
     in if null todasCapturas
         then Nothing
         else Just $ maximumBy (comparing (length . snd)) todasCapturas
+
+melhoresCapturas :: Tabuleiro -> Jogador -> Maybe [((Int, Char), [(Int, Char)])]
+melhoresCapturas tab jogador =
+    let
+        todasPosicoes = posicoesDoJogador tab jogador
+        todasCapturas = 
+            [ (origem, seq) 
+            | origem <- todasPosicoes
+            , seq <- sequenciasCapturaSimples tab origem
+            , not (null seq)
+            ]
+    in
+        if null todasCapturas
+            then Nothing
+            else
+                let
+                    maxLen = maximum (map (length . snd) todasCapturas)
+                    melhores = filter (\(_, seq) -> length seq == maxLen) todasCapturas
+                in Just melhores
 
