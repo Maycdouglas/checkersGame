@@ -157,20 +157,20 @@ melhoresCapturas :: Tabuleiro -> Jogador -> Maybe [((Int, Char), [(Int, Char)])]
 melhoresCapturas tab jogador =
     let
         todasPosicoes = posicoesDoJogador tab jogador
-        todasCapturas = 
-            [ (origem, seq) 
+
+        todasCapturas =
+            [ (origem, seq)
             | origem <- todasPosicoes
-            , seq <- sequenciasCapturaSimples tab origem
+            , seq <- sequenciasCaptura tab origem
             , not (null seq)
             ]
     in
         if null todasCapturas
             then Nothing
             else
-                let
-                    maxLen = maximum (map (length . snd) todasCapturas)
-                    melhores = filter (\(_, seq) -> length seq == maxLen) todasCapturas
-                in Just melhores
+                let maxLen = maximum (map (length . snd) todasCapturas)
+                in Just $ filter (\(_, seq) -> length seq == maxLen) todasCapturas
+
 
 loopCapturasSequenciais :: Tabuleiro -> (Int, Char) -> Jogador -> IO Tabuleiro
 loopCapturasSequenciais tab pos jogador = do

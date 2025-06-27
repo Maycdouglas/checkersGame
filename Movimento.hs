@@ -5,7 +5,7 @@ module Movimento where
 import Tabuleiro
 import Posicao
 import Control.Monad (guard)
-import Data.Maybe (maybeToList)
+import Data.Maybe (maybeToList, fromJust)
 import Debug.Trace (trace)
 
 -- Move peça de acordo se é uma dama ou uma peça comum
@@ -78,6 +78,11 @@ obterCasa tab pos@(l, c) =
            ci <- colunaParaIndice c
            Just ((tab !! li) !! ci) -- Acessa a linha do tabuleiro depois a casa da linha
        else Nothing
+
+obterPeca :: Tabuleiro -> (Int, Char) -> Maybe Peca
+obterPeca tab pos = case obterCasa tab pos of
+    Just (Ocupada p) -> Just p
+    _ -> Nothing
 
 -- Função para substituir um elemento de uma lista por outro 
 substituirNaLista :: [a] -> Int -> a -> [a]
@@ -327,6 +332,16 @@ sequenciasCapturaSimples tab origem =
                        Nothing -> []
                    ) dsts
 
+
+sequenciasCaptura :: Tabuleiro -> (Int, Char) -> [[(Int, Char)]]
+sequenciasCaptura tab origem =
+  case obterCasa tab origem of
+    Just (Ocupada peca)
+      | ehDama peca -> sequenciasCapturaDama tab origem
+      | otherwise   -> sequenciasCapturaSimples tab origem
+    _ -> []
+
+
 -- Função auxiliar que simula uma captura simples sem modificar o tabuleiro original
 simularCapturaSimples :: Tabuleiro -> (Int, Char) -> (Int, Char) -> Maybe Tabuleiro
 simularCapturaSimples tab origem destino = do
@@ -350,6 +365,110 @@ simularCapturaSimples tab origem destino = do
             return tab3
         _ -> Nothing
 
+simularCapturaDama :: Tabuleiro -> (Int, Char) -> (Int, Char) -> Maybe Tabuleiro
+simularCapturaDama tab origem destino = do
+    -- Verifica se a captura é válida
+    guard (movimentoCapturaDamaValido tab origem destino)
+
+    -- Obtém a peça de origem (deve ser dama)
+    casaOrigem <- obterCasa tab origem
+    peca <- case casaOrigem of
+        Ocupada p -> Just p
+        _ -> Nothing
+
+    -- Converte posições para índices
+    liOrig <- linhaParaIndice (fst origem)
+    ciOrig <- colunaParaIndice (snd origem)
+    liDest <- linhaParaIndice (fst destino)
+    ciDest <- colunaParaIndice (snd destino)
+
+    let
+        -- Direções do movimento
+        deltaLinha = if liDest > liOrig then 1 else -1
+        deltaColuna = if ciDest > ciOrig then 1 else -1
+
+        -- Caminho percorrido pela dama, excluindo origem e destino
+        posicoesIntermediarias =
+            zip [liOrig + deltaLinha, liOrig + 2 * deltaLinha .. liDest - deltaLinha]
+                [ciOrig + deltaColuna, ciOrig + 2 * deltaColuna .. ciDest - deltaColuna]
+
+        -- Encontra a posição da peça a ser capturada
+        capturavel = [ (li, ci)
+                     | (li, ci) <- posicoesIntermediarias
+                     , obterCasaPorIndice tab (li, ci) /= Just Vazia
+                     ]
+
+    -- Se não há exatamente uma peça no caminho, a captura não é válida
+    (liMeio, ciMeio) <- case capturavel of
+        [única] -> Just única
+        _       -> Nothing
+
+    -- Converte a posição intermediária para (Int, Char)
+    let posMeio = (8 - liMeio, toEnum (fromEnum 'A' + ciMeio) :: Char)
+
+    -- Simula a captura
+    tab1 <- atualizarCasa tab posMeio Vazia       -- remove a peça capturada
+    tab2 <- atualizarCasa tab origem Vazia        -- remove dama da origem
+    tab3 <- atualizarCasa tab2 destino (Ocupada peca) -- coloca a dama no destino
+
+    return tab3
+
+-- Versão que recebe a posição da peça capturada
+simularCapturaDamaComCapturada :: Tabuleiro -> (Int, Char) -> (Int, Char) -> (Int, Char) -> Maybe Tabuleiro
+simularCapturaDamaComCapturada tab origem destino posMeio = do
+    casaOrigem <- obterCasa tab origem
+    peca <- case casaOrigem of
+        Ocupada p -> Just p
+        _ -> Nothing
+
+    tab1 <- atualizarCasa tab posMeio Vazia       -- remove a peça capturada
+    tab2 <- atualizarCasa tab origem Vazia        -- remove dama da origem
+    tab3 <- atualizarCasa tab2 destino (Ocupada peca) -- coloca a dama no destino
+
+    return tab3
+
+sequenciasCapturaDama :: Tabuleiro -> (Int, Char) -> [[(Int, Char)]]
+sequenciasCapturaDama tab origem = buscar tab origem [origem] []
+  where
+    buscar :: Tabuleiro -> (Int, Char) -> [(Int, Char)] -> [(Int, Char)] -> [[(Int, Char)]]
+    buscar tabAtual posAtual visitados capturados =
+      let
+        direcoes = [(-1,-1), (-1,1), (1,-1), (1,1)]  -- diagonais
+        capturasPossiveis = concatMap (destinosCapturaDama tabAtual posAtual visitados capturados) direcoes
+      in case capturasPossiveis of
+           [] -> [[]]
+           ds -> concatMap (\(destino, posCapturada) ->
+                    case simularCapturaDamaComCapturada tabAtual posAtual destino posCapturada of
+                      Just novoTab ->
+                        map (destino :) (buscar novoTab destino (destino:visitados) (posCapturada:capturados))
+                      Nothing -> []
+                 ) ds
+
+
+-- Retorna pares (destino final, posição da peça capturada)
+destinosCapturaDama :: Tabuleiro -> (Int, Char) -> [(Int, Char)] -> [(Int, Char)] -> (Int, Int) -> [((Int, Char), (Int, Char))]
+destinosCapturaDama tab (l, c) visitados capturados (dl, dc) = go (li + dl) (ci + dc) False Nothing []
+  where
+    li = fromJust (linhaParaIndice l)
+    ci = fromJust (colunaParaIndice c)
+
+    go x y encontrouAdversaria posAdversaria acc
+      | not (ehPosicaoValida (x, y)) = acc
+      | otherwise =
+          let pos = (8 - x, toEnum (fromEnum 'A' + y) :: Char)
+          in case obterCasa tab pos of
+              Just Vazia ->
+                if encontrouAdversaria && pos `notElem` visitados
+                   then go (x + dl) (y + dc) encontrouAdversaria posAdversaria (((pos, fromJust posAdversaria) : acc))
+                   else go (x + dl) (y + dc) encontrouAdversaria posAdversaria acc
+              Just (Ocupada p)
+                | not encontrouAdversaria
+                  && ehPecaAdversaria (fromJust (obterPeca tab (l, c))) p
+                  && pos `notElem` capturados ->
+                      go (x + dl) (y + dc) True (Just pos) acc
+                | otherwise -> acc
+              _ -> acc
+              
 removerSemicapturadas :: Tabuleiro -> Tabuleiro
 removerSemicapturadas =
     map (map remover)
