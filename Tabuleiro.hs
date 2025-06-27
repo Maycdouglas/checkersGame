@@ -63,15 +63,15 @@ tabuleiroInicial =
 -- Função que exibe o tabuleiro no terminal
 mostrarTabuleiro :: Tabuleiro -> IO ()
 mostrarTabuleiro tab = do
-    putStrLn "   ╔═══╦═══╦═══╦═══╦═══╦═══╦═══╦═══╗" -- Desenha a borda superior do tabuleiro
+    putStrLn "   +---+---+---+---+---+---+---+---+" -- Desenha a borda superior do tabuleiro
     mapM_ putStrLn $ zipWith mostrarLinha [8,7..1] tab -- percorre as linhas do tabuleiro mostrando as linhas e colocando a numeracao de cada uma
-    putStrLn "   ╚═══╩═══╩═══╩═══╩═══╩═══╩═══╩═══╝" -- Desenha a borda inferior do tabuleiro
+    putStrLn "   +---+---+---+---+---+---+---+---+" -- Desenha a borda inferior do tabuleiro
     putStrLn "     A   B   C   D   E   F   G   H" -- Escreve os nomes das colunas no canto inferior
 
 -- Função auxiliar para mostrar a linha do tabuleiro
 mostrarLinha :: Int -> Linha -> String
 mostrarLinha numeroLinha linha =
-    " " ++ show numeroLinha ++ " ║" ++ concatMap (mostrarCasa numeroLinha) (zip [0..] linha) -- aqui tem aplicação parcial. ainda não entendi isso direito
+    " " ++ show numeroLinha ++ " |" ++ concatMap (mostrarCasa numeroLinha) (zip [0..] linha) -- aqui tem aplicação parcial. ainda não entendi isso direito
     -- Pegue a função mostrarCasa com o primeiro argumento fixado (linhaIndex) e aplique ela a cada elemento da lista gerada por zip [0..] linha.
 
 -- Função auxliar para mostrar a casa do tabuleiro
@@ -87,7 +87,7 @@ mostrarCasa linhaIndex (colIndex, casa) =
                     Ocupada PecaJogador2   -> corTexto "\x1b[33;1m" " o " -- Amarelo
                     Ocupada DamaJogador1   -> corTexto "\x1b[34;1m" " D "
                     Ocupada DamaJogador2   -> corTexto "\x1b[33;1m" " D "
-    in bg texto ++ "║"
+    in bg texto ++ "|"
 
 -- Cores e plano de fundo
 corTexto :: String -> String -> String
