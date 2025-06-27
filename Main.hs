@@ -153,23 +153,6 @@ posicoesDoJogador tab jogador =
     , pecaPertenceAoJogador peca jogador
     ]
 
-melhorCaptura :: Tabuleiro -> Jogador -> Maybe ((Int, Char), [(Int, Char)])
-melhorCaptura tab jogador =
-    let
-        todasPosicoes = posicoesDoJogador tab jogador
-
-        -- Para cada posição, obtém todas as sequências de captura possíveis
-        todasCapturas = 
-            [ (origem, seq) 
-            | origem <- todasPosicoes
-            , seq <- sequenciasCapturaSimples tab origem
-            , not (null seq)
-            ]
-
-    in if null todasCapturas
-        then Nothing
-        else Just $ maximumBy (comparing (length . snd)) todasCapturas
-
 melhoresCapturas :: Tabuleiro -> Jogador -> Maybe [((Int, Char), [(Int, Char)])]
 melhoresCapturas tab jogador =
     let
