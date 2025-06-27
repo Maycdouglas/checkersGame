@@ -174,7 +174,7 @@ melhoresCapturas tab jogador =
 
 loopCapturasSequenciais :: Tabuleiro -> (Int, Char) -> Jogador -> IO Tabuleiro
 loopCapturasSequenciais tab pos jogador = do
-    let capturas = sequenciasCapturaSimples tab pos
+    let capturas = sequenciasCaptura tab pos
     case capturas of
         [] -> do
             putStrLn "Nenhuma captura possível a partir daqui."
