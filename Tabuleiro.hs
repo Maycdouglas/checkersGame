@@ -86,6 +86,17 @@ atualizarCasa tab (linha, coluna) novaCasa = do
         tabuleiroNovo = substituirNaLista tab linhaIndex linhaNova
     return tabuleiroNovo
 
+-- Verifica se o caminho entre duas posições está livre (exceto as extremidades)
+caminhoEhLivre :: Tabuleiro -> (Int, Int) -> (Int, Int) -> Bool
+caminhoEhLivre tab (linhaIndexOrig, colIndexOrig) (linhaIndexDest, colIndexDest) =
+  let deltaLinha = if linhaIndexDest > linhaIndexOrig then 1 else -1
+      deltaColuna = if colIndexDest > colIndexOrig then 1 else -1
+      -- Gera a lista de posições entre origem e destino, excluindo origem e destino
+      posicoesEntre = zip -- Monta as coordenadas usando as listas de todas os indices de linhas e colunas entre as posicoes
+        [linhaIndexOrig + deltaLinha, linhaIndexOrig + 2 * deltaLinha .. linhaIndexDest - deltaLinha]
+        [colIndexOrig + deltaColuna, colIndexOrig + 2 * deltaColuna .. colIndexDest - deltaColuna]
+  in all (\pos -> obterCasaPorIndice tab pos == Just Vazia) posicoesEntre -- Checa se todos os elementos da lista cumprem a condição
+
 -- Gera o tabuleiro inicial da partida
 tabuleiroInicial :: Tabuleiro
 tabuleiroInicial =
