@@ -1,6 +1,8 @@
 module Tabuleiro where
 
 import Posicao
+import Control.Monad (guard) -- Permite que o fluxo prossiga se o retorno for True e gerando Nothing se for False
+-- Usado em funções com muitas validações, como por exemplo a moverPeca e atualizarCasa
 
 -- Define novos tipos de dados
 data Peca = PecaJogador1 | PecaJogador2 | DamaJogador1 | DamaJogador2 | Semicapturada Peca
@@ -13,33 +15,78 @@ data Casa = Vazia | Ocupada Peca
 type Linha = [Casa]
 type Tabuleiro = [Linha]
 
--- Função para checar se a peça que será capturada é uma adversaria ou nao
+-- Checa se a peça que será capturada é uma adversaria ou nao
 ehPecaAdversaria :: Peca -> Peca -> Bool
 ehPecaAdversaria PecaJogador1  p = p == PecaJogador2 || p == DamaJogador2
 ehPecaAdversaria DamaJogador1  p = p == PecaJogador2 || p == DamaJogador2
 ehPecaAdversaria PecaJogador2  p = p == PecaJogador1 || p == DamaJogador1
 ehPecaAdversaria DamaJogador2  p = p == PecaJogador1 || p == DamaJogador1
 
--- Função para verificar se é Dama
+-- Verifica se é Dama
 ehDama :: Peca -> Bool
 ehDama DamaJogador1 = True
 ehDama DamaJogador2 = True
 ehDama _            = False
 
--- Função para promover para Dama
+-- Realiza a promoção para Dama
 promoverParaDama :: (Int, Peca) -> Peca
 promoverParaDama (0, PecaJogador1) = DamaJogador1
 promoverParaDama (7, PecaJogador2) = DamaJogador2
 promoverParaDama (_, peca)         = peca
 
--- Função que promove ou não a peça para Dama
+-- Verifica se realizará a promoção para Dama
 avaliarPromocaoParaDama :: (Int, Char) -> Peca -> Peca
 avaliarPromocaoParaDama destino peca =
     case linhaParaIndice (fst destino) of
-        Just li -> promoverParaDama (li, peca)
+        Just linhaIndex -> promoverParaDama (linhaIndex, peca)
         Nothing -> peca
 
--- Função que gera o tabuleiro inicial da partida
+-- Remove as peças semicapturadas ao final de uma jogada
+removerSemicapturadas :: Tabuleiro -> Tabuleiro
+removerSemicapturadas =
+    map (map remover)
+  where
+    remover (Ocupada (Semicapturada _)) = Vazia
+    remover outra = outra
+
+-- Obtem casa usando índices internos (linha, coluna) no Tabuleiro
+obterCasaPorIndice :: Tabuleiro -> (Int, Int) -> Maybe Casa
+obterCasaPorIndice tab (linhaIndex, colIndex)
+  | linhaIndex >= 0 && linhaIndex < 8 && colIndex >= 0 && colIndex < 8 = Just ((tab !! linhaIndex) !! colIndex)
+  | otherwise = Nothing
+
+-- Obtem casa usando índices da interface (linha, coluna) no Tabuleiro
+obterCasa :: Tabuleiro -> (Int, Char) -> Maybe Casa
+obterCasa tab pos@(linha, coluna) =
+    if ehPosicaoValidaInterface pos
+       then do
+           linhaIndex <- linhaParaIndice linha
+           colIndex <- colunaParaIndice coluna
+           Just ((tab !! linhaIndex) !! colIndex) -- Acessa a linha do tabuleiro depois a casa da linha
+       else Nothing
+
+-- Obtem a peça em uma casa do tabuleiro
+obterPeca :: Tabuleiro -> (Int, Char) -> Maybe Peca
+obterPeca tab pos = case obterCasa tab pos of
+    Just (Ocupada peca) -> Just peca
+    _ -> Nothing
+
+-- Substitui um elemento de uma lista por outro 
+substituirNaLista :: [a] -> Int -> a -> [a]
+substituirNaLista lista idx novoElemento =
+    take idx lista ++ [novoElemento] ++ drop (idx + 1) lista
+
+-- Atualiza a casa do tabuleiro para vazia ou ocupada, a depender do caso
+atualizarCasa :: Tabuleiro -> (Int, Char) -> Casa -> Maybe Tabuleiro
+atualizarCasa tab (linha, coluna) novaCasa = do
+    linhaIndex <- linhaParaIndice linha
+    colIndex <- colunaParaIndice coluna
+    guard (ehPosicaoValida (linhaIndex, colIndex))
+    let linhaNova = substituirNaLista (tab !! linhaIndex) colIndex novaCasa
+        tabuleiroNovo = substituirNaLista tab linhaIndex linhaNova
+    return tabuleiroNovo
+
+-- Gera o tabuleiro inicial da partida
 tabuleiroInicial :: Tabuleiro
 tabuleiroInicial =
     [ linhaJogador2 i | i <- [0..2] ] ++ -- Posiciona as peças do jogador 2
@@ -50,7 +97,7 @@ tabuleiroInicial =
         linhaJogador1 i = [if even (i + j) then Ocupada PecaJogador1 else Vazia | j <- [0..7]]
         linhaVazia = replicate 8 Vazia
 
--- Cores e plano de fundo usando código ANSI
+-- Define cores e plano de fundo usando código ANSI
 corTexto :: String -> String -> String
 corTexto cor s = cor ++ s ++ "\x1b[0m"
 
@@ -60,7 +107,7 @@ bgPreto s = "\x1b[40m" ++ s ++ "\x1b[0m"
 bgBranco :: String -> String
 bgBranco s = "\x1b[47m" ++ s ++ "\x1b[0m"
 
--- Função auxliar para mostrar a casa do tabuleiro
+-- Exibe a casa do tabuleiro
 mostrarCasa :: Int -> (Int, Casa) -> String
 mostrarCasa linhaIndex (colIndex, casa) =
     let bg = if even (linhaIndex + colIndex) then bgBranco else bgPreto -- Define a cor branca ou preta para a Casa
@@ -75,13 +122,13 @@ mostrarCasa linhaIndex (colIndex, casa) =
             Ocupada DamaJogador2   -> corTexto "\x1b[33;1m" " D "
     in bg texto ++ "|" -- Define o separador lateral das casas
 
--- Função auxiliar para mostrar a linha do tabuleiro
+-- Exibe a linha do tabuleiro
 mostrarLinha :: Int -> Linha -> String
 mostrarLinha numeroLinha linha =
     " " ++ show numeroLinha ++ " |" ++ concatMap (mostrarCasa numeroLinha) (zip [0..] linha)
     -- Pega a função mostrarCasa com o primeiro argumento fixado (linhaIndex) e aplica ela a cada elemento da lista gerada por zip [0..] linha.
 
--- Função que exibe o tabuleiro no terminal
+-- Exibe o tabuleiro no terminal
 mostrarTabuleiro :: Tabuleiro -> IO ()
 mostrarTabuleiro tab = do
     putStrLn "   +---+---+---+---+---+---+---+---+" -- Desenha a borda superior do tabuleiro

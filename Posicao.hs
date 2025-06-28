@@ -15,7 +15,7 @@ linhaParaIndice linha
     | linha >= 1 && linha <= 8 = Just (8 - linha)
     | otherwise = Nothing
 
--- Função para verificar se a posição está dentro do tabuleiro e se é uma casa preta
+-- Verifica se a posição está dentro do tabuleiro e se é uma casa preta
 ehPosicaoValida :: (Int, Int) -> Bool
 ehPosicaoValida (linha, coluna) =
     linha >= 0 && linha < 8 &&

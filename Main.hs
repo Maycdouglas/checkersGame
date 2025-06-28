@@ -8,14 +8,11 @@ import Data.Ord (comparing)
 import Data.Maybe (fromJust, fromMaybe)
 import Debug.Trace (trace)
 
--- Tipo para identificar o jogador atual
--- Cria um tipo algébrico com apenas dois valores possíveis
+-- Define tipo de dado Jogador
 data Jogador = Jogador1 | Jogador2
     deriving (Eq, Show)
--- usa o Eq para poder comparar se dois jogadores são iguais ou diferentes
--- usa o Show para poder converter o texto para String
 
--- Função para verificar se uma peça pertence a um jogador
+-- Verifica se uma peça pertence a um jogador
 pecaPertenceAoJogador :: Peca -> Jogador -> Bool
 pecaPertenceAoJogador PecaJogador1 Jogador1 = True
 pecaPertenceAoJogador DamaJogador1 Jogador1 = True
@@ -31,6 +28,7 @@ pecaPertenceAoJogador _ _ = False
 -- Verifica se a peça escolhida é do jogador atual
 -- Atualiza o tabuleiro e troca o jogador
 
+-- Executa Loop do Jogo de Damas
 loopJogo :: Tabuleiro -> Jogador -> Bool -> IO ()
 loopJogo tab jogadorAtual maquinaVsMaquina = do
     let outroJogador = trocarJogador jogadorAtual
@@ -129,13 +127,12 @@ loopJogo tab jogadorAtual maquinaVsMaquina = do
                 return t
 
 
--- Função para colorir o 
+-- Colore o nome do Jogador 
 nomeJogadorColorido :: Jogador -> String
 nomeJogadorColorido Jogador1 = corTexto "\x1b[34;1m" "Jogador 1"  -- Azul
 nomeJogadorColorido Jogador2 = corTexto "\x1b[33;1m" "Jogador 2"  -- Amarelo
 
-
--- Função para alternar entre jogadores no LoopJogo
+-- Alterna entre jogadores
 trocarJogador :: Jogador -> Jogador
 trocarJogador Jogador1 = Jogador2
 trocarJogador Jogador2 = Jogador1
@@ -160,7 +157,7 @@ main = do
             putStrLn "Opção inválida, tente novamente."
             main -- executa essa funcao até o usuário escolher uma opção válida
 
--- Função para escolher quem começa o jogo
+-- Escolhe quem inicia o jogo
 escolherInicio :: Bool -> IO ()
 escolherInicio jogadorVsMaquina = do
     putStrLn "Quem começa o Jogo?"
@@ -175,7 +172,7 @@ escolherInicio jogadorVsMaquina = do
             putStrLn "Opção inválida, tente novamente."
             escolherInicio jogadorVsMaquina
 
--- Função que inicializa o jogo
+-- Inicializa o jogo
 iniciarJogo :: Bool -> Jogador -> IO ()
 iniciarJogo jogadorVsMaquina jogadorInicial = do
     putStrLn $ "\nModo de jogo: " ++
@@ -183,6 +180,7 @@ iniciarJogo jogadorVsMaquina jogadorInicial = do
     putStrLn $ "Quem começa: " ++ nomeJogadorColorido jogadorInicial
     loopJogo tabuleiroInicial jogadorInicial (not jogadorVsMaquina && True)
 
+-- Retorna as posições das peças do Jogador
 posicoesDoJogador :: Tabuleiro -> Jogador -> [(Int, Char)]
 posicoesDoJogador tab jogador = 
     [ (8 - li, toEnum (fromEnum 'A' + ci)) 
@@ -192,6 +190,7 @@ posicoesDoJogador tab jogador =
     , pecaPertenceAoJogador peca jogador
     ]
 
+-- Gera as melhores capturas possíveis na jogada
 melhoresCapturas :: Tabuleiro -> Jogador -> Maybe [((Int, Char), [(Int, Char)])]
 melhoresCapturas tab jogador =
     let
@@ -210,7 +209,7 @@ melhoresCapturas tab jogador =
                 let maxLen = maximum (map (length . snd) todasCapturas)
                 in Just $ filter (\(_, seq) -> length seq == maxLen) todasCapturas
 
-
+-- Executa loop para capturas sequenciais
 loopCapturasSequenciais :: Tabuleiro -> (Int, Char) -> Jogador -> IO Tabuleiro
 loopCapturasSequenciais tab pos jogador = do
     let capturas = sequenciasCaptura tab pos
@@ -242,6 +241,7 @@ loopCapturasSequenciais tab pos jogador = do
                 putStrLn $ "Erro ao tentar capturar para " ++ show prox
                 return t
 
+-- Verifica se o Jogador está sem peças
 jogadorSemPecas :: Tabuleiro -> Jogador -> Bool
 jogadorSemPecas tab jogador =
     null [()
@@ -253,6 +253,7 @@ jogadorSemPecas tab jogador =
 
 
 -- Função principal da IA: retorna o tabuleiro atualizado após o movimento da máquina
+-- Executa a jogada da IA
 jogadaIa :: Tabuleiro -> Jogador -> IO Tabuleiro
 jogadaIa tab jogador = do
     let capturas = fromMaybe [] (melhoresCapturas tab jogador)
@@ -277,7 +278,7 @@ jogadaIa tab jogador = do
             tabFinal <- executarSequenciaCapturas tab origem melhorSeq
             return tabFinal
 
--- Função que escolhe a melhor captura entre as melhores capturas segundo heurística
+-- Escolhe a melhor captura entre as melhores capturas segundo heurística
 escolherMelhorCaptura :: Tabuleiro -> Jogador -> [((Int, Char), [(Int, Char)])] -> ((Int, Char), [(Int, Char)])
 escolherMelhorCaptura tab jogador capturas =
     maximumBy (comparing (mobilidadePosicaoFinal tab jogador)) capturas
@@ -291,7 +292,7 @@ mobilidadePosicaoFinal tab jogador (origem, seq) =
         Just tabNovo -> length $ sequenciasCaptura tabNovo posFinal -- número de sequências de captura disponíveis na nova posição
         Nothing -> 0
 
--- Função para simular o resultado de uma sequência de captura sem modificar o tabuleiro original
+-- Simula o resultado de uma sequência de captura sem modificar o tabuleiro original
 simularSequenciaCaptura :: Tabuleiro -> (Int, Char) -> [(Int, Char)] -> Maybe Tabuleiro
 simularSequenciaCaptura tab origem [] = Just tab
 simularSequenciaCaptura tab origem (d:ds) =
@@ -299,7 +300,7 @@ simularSequenciaCaptura tab origem (d:ds) =
         Just (tabNovo, novaPos) -> simularSequenciaCaptura tabNovo d ds
         Nothing -> Nothing
 
--- Função para executar a sequência de capturas, pode ser a sua já existente adaptada para IO Tabuleiro
+-- Executa a sequência de capturas
 executarSequenciaCapturas :: Tabuleiro -> (Int, Char) -> [(Int, Char)] -> IO Tabuleiro
 executarSequenciaCapturas tab origem [] = return tab
 executarSequenciaCapturas tab origem (destino:resto) = do
@@ -328,7 +329,7 @@ executarSequenciaCapturas tab origem (destino:resto) = do
                 executarCapturasRec novoTab novaPos resto'
             Nothing -> return t  -- erro numa das capturas subsequentes
 
--- Função para obter todos movimentos simples válidos (origem,destino)
+-- Obtem todos movimentos simples válidos (origem,destino)
 movimentosSimplesValidos :: Tabuleiro -> Jogador -> [((Int, Char), (Int, Char))]
 movimentosSimplesValidos tab jogador =
     concatMap movimentosDaPeca (posicoesDoJogador tab jogador)
@@ -378,11 +379,12 @@ movimentosSimplesValidos tab jogador =
             let pos = (8 - x, toEnum (fromEnum 'A' + y))
             in obterCasa tab pos == Just Vazia
 
--- Função que escolhe o melhor movimento simples segundo heurística (exemplo: maior mobilidade no destino)
+-- Escolhe o melhor movimento simples segundo heurística (exemplo: maior mobilidade no destino)
 escolherMelhorMovimentoSimples :: Tabuleiro -> Jogador -> [((Int, Char), (Int, Char))] -> ((Int, Char), (Int, Char))
 escolherMelhorMovimentoSimples tab jogador movimentos =
     maximumBy (comparing (avaliarMovimento tab jogador)) movimentos
 
+-- Atribui peso/pontuação a um movimento
 avaliarMovimento :: Tabuleiro -> Jogador -> ((Int, Char), (Int, Char)) -> Int
 avaliarMovimento tab jogador (origem, destino) =
     let base = length (sequenciasCaptura tab destino)
@@ -395,6 +397,7 @@ avaliarMovimento tab jogador (origem, destino) =
         mobilidade = length $ movimentosAdjacentesLivres tab destino
     in base * 10 + pesoPromocao + mobilidade
 
+-- Verifica movimentos adjacentes livres 
 movimentosAdjacentesLivres :: Tabuleiro -> (Int, Char) -> [(Int, Char)]
 movimentosAdjacentesLivres tab (l, c) =
     let direcoes = [(-1,-1), (-1,1), (1,-1), (1,1)]

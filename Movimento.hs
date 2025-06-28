@@ -4,25 +4,33 @@ module Movimento where
 
 import Tabuleiro
 import Posicao
-import Control.Monad (guard) -- função guard da biblioteca Control.Monad
--- usado em condições, permitindo que o fluxo prossiga se o retorno for True e gerando Nothing se for False
--- usado em funções com muitas validações, como por exemplo a moverPeca e atualizarCasa
+import Control.Monad (guard) -- Permite que o fluxo prossiga se o retorno for True e gerando Nothing se for False
+-- Usado em funções com muitas validações, como por exemplo a moverPeca e atualizarCasa
 import Data.Maybe (maybeToList, fromJust)
-import Debug.Trace (trace)
 
--- Move peça de acordo se é uma dama ou uma peça comum
-moverPeca :: Tabuleiro -> (Int, Char) -> (Int, Char) -> Maybe Tabuleiro
-moverPeca tab origem destino = do
-    guard (ehPosicaoValidaInterface origem)
-    guard (ehPosicaoValidaInterface destino)
-
-    casaOrigem <- obterCasa tab origem
-    case casaOrigem of
-        Vazia -> Nothing
-        Ocupada peca ->
-            if ehDama peca
-                then moverDama tab origem destino peca
-                else moverPecaComum tab origem destino peca
+-- Verifica se um movimento simples é válido (sem captura de peças)
+movimentoSimplesValido :: Tabuleiro -> (Int, Char) -> (Int, Char) -> Bool
+movimentoSimplesValido tab origem destino = 
+    case (linhaParaIndice (fst origem), colunaParaIndice (snd origem),
+          linhaParaIndice (fst destino), colunaParaIndice (snd destino)) of
+        (Just liOrig, Just ciOrig, Just liDest, Just ciDest) ->
+            let 
+                deltaLinha = liDest - liOrig
+                deltaColuna = ciDest - ciOrig
+                casaOrigem = obterCasa tab origem
+                casaDestino = obterCasa tab destino
+            in
+                case casaOrigem of
+                    Just (Ocupada peca) ->
+                        casaDestino == Just Vazia &&
+                        abs deltaColuna == 1 &&
+                        case peca of
+                            PecaJogador1  -> deltaLinha == -1 -- sobe
+                            PecaJogador2  -> deltaLinha == 1  -- desce
+                            DamaJogador1  -> abs deltaLinha == 1 -- sobe ou desce
+                            DamaJogador2  -> abs deltaLinha == 1 -- sobe ou desce
+                    _ -> False
+        _ -> False
 
 -- Move peça comum
 moverPecaComum :: Tabuleiro -> (Int, Char) -> (Int, Char) -> Peca -> Maybe Tabuleiro
@@ -36,7 +44,7 @@ moverPecaComum tab origem destino peca = do
     tab2 <- atualizarCasa tab1 destino (Ocupada novaPeca)  -- Atualiza o tabuleiro: colocar na destino
     return tab2
 
---Move Dama
+-- Move Dama
 moverDama :: Tabuleiro -> (Int, Char) -> (Int, Char) -> Peca -> Maybe Tabuleiro
 moverDama tab origem destino dama = do
     -- Verifica se o destino está vazio
@@ -61,61 +69,21 @@ moverDama tab origem destino dama = do
 
     return tab2
 
--- Atualiza a casa do tabuleiro para vazia ou ocupada, a depender do caso
-atualizarCasa :: Tabuleiro -> (Int, Char) -> Casa -> Maybe Tabuleiro
-atualizarCasa tab (l, c) novaCasa = do
-    li <- linhaParaIndice l
-    ci <- colunaParaIndice c
-    guard (ehPosicaoValida (li, ci))
-    let linhaNova = substituirNaLista (tab !! li) ci novaCasa
-        tabuleiroNovo = substituirNaLista tab li linhaNova
-    return tabuleiroNovo
+-- Move peça de acordo se é uma dama ou uma peça comum
+moverPeca :: Tabuleiro -> (Int, Char) -> (Int, Char) -> Maybe Tabuleiro
+moverPeca tab origem destino = do
+    guard (ehPosicaoValidaInterface origem)
+    guard (ehPosicaoValidaInterface destino)
 
--- Função para consultar o conteúdo de uma posição válido no tabuleiro
-obterCasa :: Tabuleiro -> (Int, Char) -> Maybe Casa
-obterCasa tab pos@(l, c) =
-    if ehPosicaoValidaInterface pos
-       then do
-           li <- linhaParaIndice l
-           ci <- colunaParaIndice c
-           Just ((tab !! li) !! ci) -- Acessa a linha do tabuleiro depois a casa da linha
-       else Nothing
+    casaOrigem <- obterCasa tab origem
+    case casaOrigem of
+        Vazia -> Nothing
+        Ocupada peca ->
+            if ehDama peca
+                then moverDama tab origem destino peca
+                else moverPecaComum tab origem destino peca
 
-obterPeca :: Tabuleiro -> (Int, Char) -> Maybe Peca
-obterPeca tab pos = case obterCasa tab pos of
-    Just (Ocupada p) -> Just p
-    _ -> Nothing
-
--- Função para substituir um elemento de uma lista por outro 
-substituirNaLista :: [a] -> Int -> a -> [a]
-substituirNaLista lista idx novoElemento =
-    take idx lista ++ [novoElemento] ++ drop (idx + 1) lista
-
--- verifica se um movimento simples é válido (sem captura de peças)
-movimentoSimplesValido :: Tabuleiro -> (Int, Char) -> (Int, Char) -> Bool
-movimentoSimplesValido tab origem destino = 
-    case (linhaParaIndice (fst origem), colunaParaIndice (snd origem), -- fst e snd são funcoes haskell que retornam os elementos da tupla
-          linhaParaIndice (fst destino), colunaParaIndice (snd destino)) of
-        (Just liOrig, Just ciOrig, Just liDest, Just ciDest) ->
-            let 
-                deltaLinha = liDest - liOrig
-                deltaColuna = ciDest - ciOrig
-                casaOrigem = obterCasa tab origem
-                casaDestino = obterCasa tab destino
-            in
-                case casaOrigem of
-                    Just (Ocupada peca) ->
-                        casaDestino == Just Vazia &&
-                        abs deltaColuna == 1 &&
-                        case peca of
-                            PecaJogador1  -> deltaLinha == -1 -- sobe
-                            PecaJogador2  -> deltaLinha == 1  -- desce
-                            DamaJogador1  -> abs deltaLinha == 1 -- sobe ou desce
-                            DamaJogador2  -> abs deltaLinha == 1 -- sobe ou desce
-                    _ -> False
-        _ -> False
-
--- Verifica se uma captura simples é válida (não funciona para captura de damas)
+-- Verifica se uma captura simples é válida
 movimentoCapturaValido :: Tabuleiro -> (Int, Char) -> (Int, Char) -> Bool
 movimentoCapturaValido tab origem destino =
     case (linhaParaIndice (fst origem), colunaParaIndice (snd origem),
@@ -178,11 +146,7 @@ movimentoCapturaDamaValido tab origem destino =
                     _ -> False
         _ -> False
 
-capturarPecaComPos :: Tabuleiro -> (Int, Char) -> (Int, Char) -> Maybe (Tabuleiro, (Int, Char))
-capturarPecaComPos tab origem destino = do
-    novoTab <- capturarPeca tab origem destino
-    return (novoTab, destino)
-
+-- Captura peça
 capturarPeca :: Tabuleiro -> (Int, Char) -> (Int, Char) -> Maybe Tabuleiro
 capturarPeca tab origem destino = do
     casaOrigem <- obterCasa tab origem
@@ -194,7 +158,13 @@ capturarPeca tab origem destino = do
                 capturarPecaSimples tab origem destino
         _ -> Nothing
 
--- Função para capturar uma peça de forma simples (não funciona para dama)
+-- Captura peça e também retorna a posição destino - Usado pela máquina
+capturarPecaComPos :: Tabuleiro -> (Int, Char) -> (Int, Char) -> Maybe (Tabuleiro, (Int, Char))
+capturarPecaComPos tab origem destino = do
+    novoTab <- capturarPeca tab origem destino
+    return (novoTab, destino)
+
+-- Captura uma peça de forma simples
 capturarPecaSimples :: Tabuleiro -> (Int, Char) -> (Int, Char) -> Maybe Tabuleiro
 capturarPecaSimples tab origem destino = do
     -- Verifica se a captura é válida
@@ -232,7 +202,7 @@ capturarPecaSimples tab origem destino = do
 
             return tab3
 
--- Captura por uma dama
+-- Captura uma peça sob regras da Dama
 capturarDama :: Tabuleiro -> (Int, Char) -> (Int, Char) -> Maybe Tabuleiro
 capturarDama tab origem destino = do
     -- Verifica se a captura é válida
@@ -292,13 +262,7 @@ caminhoLivre tab (liOrig, ciOrig) (liDest, ciDest) =
         [ciOrig + deltaColuna, ciOrig + 2 * deltaColuna .. ciDest - deltaColuna]
   in all (\pos -> obterCasaPorIndice tab pos == Just Vazia) posicoesEntre -- função que checa se todos os elementos da lista cumprem a condição
 
--- Função auxiliar para obter casa usando índices (linha,coluna) no Tabuleiro
-obterCasaPorIndice :: Tabuleiro -> (Int, Int) -> Maybe Casa
-obterCasaPorIndice tab (li, ci)
-  | li >= 0 && li < 8 && ci >= 0 && ci < 8 = Just ((tab !! li) !! ci)
-  | otherwise = Nothing
-
--- wrapper público: chama o helper com visited contendo apenas a origem
+-- Gera sequencia de captura simples, quando possível
 sequenciasCapturaSimples :: Tabuleiro -> (Int, Char) -> [[(Int, Char)]]
 sequenciasCapturaSimples tab origem =
   buscar tab origem [origem]
@@ -334,7 +298,7 @@ sequenciasCapturaSimples tab origem =
                        Nothing -> []
                    ) dsts
 
-
+-- Gera sequencia de capturas
 sequenciasCaptura :: Tabuleiro -> (Int, Char) -> [[(Int, Char)]]
 sequenciasCaptura tab origem =
   case obterCasa tab origem of
@@ -344,7 +308,7 @@ sequenciasCaptura tab origem =
     _ -> []
 
 
--- Função auxiliar que simula uma captura simples sem modificar o tabuleiro original
+-- Simula uma captura simples sem modificar o tabuleiro original
 simularCapturaSimples :: Tabuleiro -> (Int, Char) -> (Int, Char) -> Maybe Tabuleiro
 simularCapturaSimples tab origem destino = do
     guard (movimentoCapturaValido tab origem destino)
@@ -367,6 +331,7 @@ simularCapturaSimples tab origem destino = do
             return tab3
         _ -> Nothing
 
+-- Simula uma captura por Dama sem modificar o tabuleiro original
 simularCapturaDama :: Tabuleiro -> (Int, Char) -> (Int, Char) -> Maybe Tabuleiro
 simularCapturaDama tab origem destino = do
     -- Verifica se a captura é válida
@@ -415,7 +380,7 @@ simularCapturaDama tab origem destino = do
 
     return tab3
 
--- Versão que recebe a posição da peça capturada
+-- Simula Captura com Dama - Versão que recebe a posição da peça capturada
 simularCapturaDamaComCapturada :: Tabuleiro -> (Int, Char) -> (Int, Char) -> (Int, Char) -> Maybe Tabuleiro
 simularCapturaDamaComCapturada tab origem destino posMeio = do
     casaOrigem <- obterCasa tab origem
@@ -429,6 +394,7 @@ simularCapturaDamaComCapturada tab origem destino posMeio = do
 
     return tab3
 
+-- Gera sequencia de captura por Dama, quando possível
 sequenciasCapturaDama :: Tabuleiro -> (Int, Char) -> [[(Int, Char)]]
 sequenciasCapturaDama tab origem = buscar tab origem [origem] []
   where
@@ -470,10 +436,3 @@ destinosCapturaDama tab (l, c) visitados capturados (dl, dc) = go (li + dl) (ci 
                       go (x + dl) (y + dc) True (Just pos) acc
                 | otherwise -> acc
               _ -> acc
-              
-removerSemicapturadas :: Tabuleiro -> Tabuleiro
-removerSemicapturadas =
-    map (map remover)
-  where
-    remover (Ocupada (Semicapturada _)) = Vazia
-    remover outra = outra
