@@ -31,9 +31,8 @@ pecaPertenceAoJogador _ _ = False
 -- Verifica se a peça escolhida é do jogador atual
 -- Atualiza o tabuleiro e troca o jogador
 
---LOOP COM CAPTURA DE PEÇAS FUNCIONANDO e TURNOS
-loopJogo :: Tabuleiro -> Jogador -> IO ()
-loopJogo tab jogadorAtual = do
+loopJogo :: Tabuleiro -> Jogador -> Bool -> IO ()
+loopJogo tab jogadorAtual maquinaVsMaquina = do
     let outroJogador = trocarJogador jogadorAtual
     if jogadorSemPecas tab jogadorAtual
         then do
@@ -41,100 +40,94 @@ loopJogo tab jogadorAtual = do
             putStrLn $ "Fim de jogo! " ++ nomeJogadorColorido outroJogador ++ " venceu!"
             putStrLn "========================="
             mostrarTabuleiro tab
-        else if jogadorAtual == Jogador2  -- IA joga como Jogador2
-            then do
-                putStrLn $ "\nTurno da " ++ nomeJogadorColorido jogadorAtual ++ " (IA)"
-                mostrarTabuleiro tab
-                tabNovo <- jogadaIa tab jogadorAtual
-                loopJogo tabNovo outroJogador
+        else if maquinaVsMaquina || jogadorAtual == Jogador2 then do
+            putStrLn $ "\nTurno da " ++ nomeJogadorColorido jogadorAtual ++ " (IA)"
+            mostrarTabuleiro tab
+            tabNovo <- jogadaIa tab jogadorAtual
+            loopJogo tabNovo outroJogador maquinaVsMaquina
         else do
             putStrLn $ "\nTurno do " ++ nomeJogadorColorido jogadorAtual
             mostrarTabuleiro tab
 
             case melhoresCapturas tab jogadorAtual of
-                    Just sequencias -> do
-                        putStrLn "\nVocê deve realizar uma das capturas a seguir (todas têm o maior número de peças capturadas):"
-                        mapM_ (\(i, (origem, seq)) ->
-                            putStrLn $ show i ++ " - Origem: " ++ show origem ++ " -> " ++ intercalate " -> " (map show seq)
-                         ) (zip [1..] sequencias)
+                Just sequencias -> do
+                    putStrLn "\nVocê deve realizar uma das capturas a seguir:"
+                    mapM_ (\(i, (origem, seq)) ->
+                        putStrLn $ show i ++ " - Origem: " ++ show origem ++ " -> " ++ intercalate " -> " (map show seq)
+                     ) (zip [1..] sequencias)
 
-                        putStrLn "Digite o número da jogada que deseja realizar:"
-                        escolhaStr <- getLine
-                        case reads escolhaStr of
-                            [(idx, "")] | idx >= 1 && idx <= length sequencias -> do
-                                let (origem, seq) = sequencias !! (idx - 1)
-                                case capturarPecaComPos tab origem (head seq) of
-                                    Just (tabPrimeiro, novaPos) -> do
-                                        mostrarTabuleiro tabPrimeiro
-                                        tabFinal <- fazerCapturas tabPrimeiro novaPos (tail seq)
-                                        loopJogo tabFinal (trocarJogador jogadorAtual)
-                                    Nothing -> do
-                                        putStrLn "Erro ao executar a primeira captura."
-                                        loopJogo tab jogadorAtual
-                            _ -> do
-                                putStrLn "Opção inválida. Tente novamente."
-                                loopJogo tab jogadorAtual
+                    putStrLn "Digite o número da jogada que deseja realizar:"
+                    escolhaStr <- getLine
+                    case reads escolhaStr of
+                        [(idx, "")] | idx >= 1 && idx <= length sequencias -> do
+                            let (origem, seq) = sequencias !! (idx - 1)
+                            case capturarPecaComPos tab origem (head seq) of
+                                Just (tabPrimeiro, novaPos) -> do
+                                    mostrarTabuleiro tabPrimeiro
+                                    tabFinal <- fazerCapturas tabPrimeiro novaPos (tail seq)
+                                    loopJogo tabFinal outroJogador maquinaVsMaquina
+                                Nothing -> do
+                                    putStrLn "Erro ao executar a primeira captura."
+                                    loopJogo tab jogadorAtual maquinaVsMaquina
+                        _ -> do
+                            putStrLn "Opção inválida. Tente novamente."
+                            loopJogo tab jogadorAtual maquinaVsMaquina
 
-                    Nothing -> do
-                        putStrLn "Digite posição origem (ex: 6B): "
-                        origemStr <- getLine
-                        putStrLn "Digite posição destino (ex: 5A): "
-                        destinoStr <- getLine
+                Nothing -> do
+                    putStrLn "Digite posição origem (ex: 6B): "
+                    origemStr <- getLine
+                    putStrLn "Digite posição destino (ex: 5A): "
+                    destinoStr <- getLine
+                    case (lerPosicao origemStr, lerPosicao destinoStr) of
+                        (Just origem, Just destino) -> do
+                            if not (ehPosicaoValidaInterface origem)
+                                then do
+                                    putStrLn "Casa inválida!"
+                                    loopJogo tab jogadorAtual maquinaVsMaquina
+                                else case obterCasa tab origem of
+                                    Just (Ocupada peca)
+                                        | pecaPertenceAoJogador peca jogadorAtual -> do
+                                            case capturarPecaComPos tab origem destino of
+                                                Just (tabApósCaptura, novaPos) -> do
+                                                    putStrLn "Captura realizada!"
+                                                    mostrarTabuleiro tabApósCaptura
+                                                    tabFinal <- loopCapturasSequenciais tabApósCaptura novaPos jogadorAtual
+                                                    loopJogo tabFinal outroJogador maquinaVsMaquina
+                                                Nothing -> case moverPeca tab origem destino of
+                                                    Just tabNovo -> loopJogo tabNovo outroJogador maquinaVsMaquina
+                                                    Nothing -> do
+                                                        putStrLn "Movimento inválido!"
+                                                        loopJogo tab jogadorAtual maquinaVsMaquina
+                                    Just Vazia -> do
+                                        putStrLn "Não há peça na origem."
+                                        loopJogo tab jogadorAtual maquinaVsMaquina
+                                    _ -> do
+                                        putStrLn "Essa peça não pertence a você."
+                                        loopJogo tab jogadorAtual maquinaVsMaquina
+                        _ -> do
+                            putStrLn "Entrada inválida!"
+                            loopJogo tab jogadorAtual maquinaVsMaquina
 
-                        -- Verifica se o usuário inseriu dados que representam alguma casa do tabuleiro corretamente
-                        case (lerPosicao origemStr, lerPosicao destinoStr) of
-                            (Just origem, Just destino) -> do
-                                -- Verifica se na origem existe peça e a quem pertence
-                                if not (ehPosicaoValidaInterface origem) -- veriicacao para quando o usuário tenta usar uma casa branca como origem
-                                    then do
-                                        putStrLn "Casa inválida! Escolha apenas casas pretas do tabuleiro."
-                                        loopJogo tab jogadorAtual
-                                    else
-                                        case obterCasa tab origem of
-                                            Just (Ocupada peca)
-                                                | pecaPertenceAoJogador peca jogadorAtual -> do
-                                                    -- Tentativa de captura
-                                                    case capturarPecaComPos tab origem destino of
-                                                        Just (tabApósCaptura, novaPos) -> do
-                                                            putStrLn "Captura realizada!"
-                                                            mostrarTabuleiro tabApósCaptura
-                                                            tabFinal <- loopCapturasSequenciais tabApósCaptura novaPos jogadorAtual
-                                                            loopJogo tabFinal (trocarJogador jogadorAtual)
-                                                        Nothing -> 
-                                                            -- Tentativa de movimento simples
-                                                            case moverPeca tab origem destino of
-                                                                Just tabNovo -> loopJogo tabNovo (trocarJogador jogadorAtual)
-                                                                Nothing -> do
-                                                                    putStrLn "Movimento inválido! Tente novamente."
-                                                                    loopJogo tab jogadorAtual
-                                            Just Vazia -> do
-                                                putStrLn "Não há peça na posição de origem. Tente novamente."
-                                                loopJogo tab jogadorAtual    
-                                            _ -> do
-                                                putStrLn "Essa peça não pertence a você! Escolha uma peça sua."
-                                                loopJogo tab jogadorAtual
-                            _ -> do
-                                putStrLn "Entrada inválida! Tente novamente."
-                                loopJogo tab jogadorAtual
-            where
-                fazerCapturas t ultimaPos [] = do
-                    case obterCasa t ultimaPos of
-                        Just (Ocupada peca) -> do
-                            let novaPeca = avaliarPromocaoParaDama ultimaPos peca
-                            case atualizarCasa t ultimaPos (Ocupada novaPeca) of
-                                Just t1 -> return (removerSemicapturadas t1)
-                                Nothing -> return (removerSemicapturadas t)
-                        _ -> return (removerSemicapturadas t)
+  where
+    fazerCapturas t ultimaPos [] = do
+        case obterCasa t ultimaPos of
+            Just (Ocupada peca) -> do
+                let novaPeca = avaliarPromocaoParaDama ultimaPos peca
+                case atualizarCasa t ultimaPos (Ocupada novaPeca) of
+                    Just t1 -> return (removerSemicapturadas t1)
+                    Nothing -> return (removerSemicapturadas t)
+            _ -> return (removerSemicapturadas t)
 
-                fazerCapturas t atual (prox:resto) = do
-                    case capturarPecaComPos t atual prox of
-                        Just (novoTab, novaPos) -> do
-                            mostrarTabuleiro novoTab
-                            putStrLn $ "Captura para " ++ show novaPos ++ " realizada!"
-                            fazerCapturas novoTab novaPos resto
-                        Nothing -> do
-                            putStrLn $ "Erro ao tentar capturar para " ++ show prox
-                            return t
+    fazerCapturas t atual (prox:resto) = do
+        case capturarPecaComPos t atual prox of
+            Just (novoTab, novaPos) -> do
+                mostrarTabuleiro novoTab
+                putStrLn $ "Captura para " ++ show novaPos ++ " realizada!"
+                fazerCapturas novoTab novaPos resto
+            Nothing -> do
+                putStrLn $ "Erro ao capturar para " ++ show prox
+                return t
+
 
 -- Função para colorir o 
 nomeJogadorColorido :: Jogador -> String
@@ -176,20 +169,19 @@ escolherInicio jogadorVsMaquina = do
     putStr "Opção: "
     inicio <- getLine
     case inicio of
-        "1" -> iniciarJogo jogadorVsMaquina True
-        "2" -> iniciarJogo jogadorVsMaquina False
+        "1" -> iniciarJogo jogadorVsMaquina Jogador1
+        "2" -> iniciarJogo jogadorVsMaquina Jogador2
         _   -> do
             putStrLn "Opção inválida, tente novamente."
             escolherInicio jogadorVsMaquina
 
 -- Função que inicializa o jogo
-iniciarJogo :: Bool -> Bool -> IO ()
-iniciarJogo jogadorVsMaquina jogadorComeca = do
+iniciarJogo :: Bool -> Jogador -> IO ()
+iniciarJogo jogadorVsMaquina jogadorInicial = do
     putStrLn $ "\nModo de jogo: " ++
         if jogadorVsMaquina then "Jogador vs Máquina" else "Máquina vs Máquina"
-    putStrLn $ "Quem começa: " ++ 
-        if jogadorComeca then "Jogador (ou Máquina 1)" else "Máquina (ou Máquina 2)"
-    loopJogo tabuleiroInicial (if jogadorComeca then Jogador1 else Jogador2)
+    putStrLn $ "Quem começa: " ++ nomeJogadorColorido jogadorInicial
+    loopJogo tabuleiroInicial jogadorInicial (not jogadorVsMaquina && True)
 
 posicoesDoJogador :: Tabuleiro -> Jogador -> [(Int, Char)]
 posicoesDoJogador tab jogador = 
