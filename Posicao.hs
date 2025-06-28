@@ -32,6 +32,6 @@ ehPosicaoValidaInterface (l, c) = case (linhaParaIndice l, colunaParaIndice c) o
 -- Usa o readMaybe para não dar erro em tempo de execução no caso do usuário tentar uma entrada como XB, por exemplo
 lerPosicao :: String -> Maybe (Int, Char)
 lerPosicao [linha, coluna]
-  | coluna >= 'a' && coluna <= 'h' = (,) <$> readMaybe [linha] <*> Just (toUpper coluna)
-  | coluna >= 'A' && coluna <= 'H' = (,) <$> readMaybe [linha] <*> Just coluna
+    | coluna >= 'a' && coluna <= 'h' = (,) <$> readMaybe [linha] <*> Just (toUpper coluna)
+    | coluna >= 'A' && coluna <= 'H' = (,) <$> readMaybe [linha] <*> Just coluna
 lerPosicao _ = Nothing

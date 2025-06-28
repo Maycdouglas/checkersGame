@@ -4,7 +4,9 @@ module Movimento where
 
 import Tabuleiro
 import Posicao
-import Control.Monad (guard)
+import Control.Monad (guard) -- função guard da biblioteca Control.Monad
+-- usado em condições, permitindo que o fluxo prossiga se o retorno for True e gerando Nothing se for False
+-- usado em funções com muitas validações, como por exemplo a moverPeca e atualizarCasa
 import Data.Maybe (maybeToList, fromJust)
 import Debug.Trace (trace)
 
