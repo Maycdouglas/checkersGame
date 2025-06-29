@@ -3,9 +3,9 @@ module Maquina where
 import Tabuleiro
 import Movimento
 import Posicao
-import Data.List (maximumBy, maximum)
-import Data.Ord (comparing)
+import Data.List (maximum)
 import Data.Maybe (fromJust, fromMaybe)
+import System.Random (randomRIO)
 
 -- Função principal da IA: retorna o tabuleiro atualizado após o movimento da máquina
 -- Executa a jogada da IA
@@ -20,7 +20,7 @@ jogadaIa tab jogador = do
                     putStrLn "IA: sem jogadas possíveis."
                     return tab
                 else do
-                    let (origem, destino) = escolherMelhorMovimentoSimples tab jogador movimentosSimples
+                    (origem, destino) <- escolherMelhorMovimentoSimples tab jogador movimentosSimples
                     putStrLn $ "IA: movendo de " ++ show origem ++ " para " ++ show destino
                     case moverPeca tab origem destino of
                         Just tabNovo -> return tabNovo
@@ -28,21 +28,25 @@ jogadaIa tab jogador = do
                             putStrLn "IA: erro ao mover peça."
                             return tab
         else do
-            let (origem, melhorSeq) = escolherMelhorCaptura tab jogador capturas
+            (origem, melhorSeq) <- escolherMelhorCaptura tab jogador capturas
             putStrLn $ "IA: capturando de " ++ show origem ++ " seguindo " ++ show melhorSeq
             tabFinal <- executarSequenciaCapturas tab origem melhorSeq
             return tabFinal
 
 -- Escolhe a melhor captura entre as melhores capturas segundo heurística
-escolherMelhorCaptura :: Tabuleiro -> Jogador -> [((Int, Char), [(Int, Char)])] -> ((Int, Char), [(Int, Char)])
-escolherMelhorCaptura tab jogador capturas =
-    maximumBy (comparing (mobilidadePosicaoFinal tab jogador)) capturas
+escolherMelhorCaptura :: Tabuleiro -> Jogador -> [((Int, Char), [(Int, Char)])] -> IO ((Int, Char), [(Int, Char)])
+escolherMelhorCaptura tab jogador capturas = do
+    let capturasComPeso = [ (cap, mobilidadePosicaoFinal tab jogador cap) | cap <- capturas ]
+        melhorValor = maximum (map snd capturasComPeso)
+        melhores = [ cap | (cap, peso) <- capturasComPeso, peso == melhorValor ]
+    idx <- randomRIO (0, length melhores - 1)
+    return (melhores !! idx)
 
 -- Avalia a "mobilidade" (quantidade de movimentos possíveis) da peça após a sequência de capturas
 mobilidadePosicaoFinal :: Tabuleiro -> Jogador -> ((Int, Char), [(Int, Char)]) -> Int
-mobilidadePosicaoFinal tab jogador (origem, seq) =
-    let posFinal = if null seq then origem else last seq
-        tabSimulado = simularSequenciaCaptura tab origem seq
+mobilidadePosicaoFinal tab jogador (origem, seqMov) =
+    let posFinal = if null seqMov then origem else last seqMov
+        tabSimulado = simularSequenciaCaptura tab origem seqMov
     in case tabSimulado of
         Just tabNovo -> length $ sequenciasCaptura tabNovo posFinal -- número de sequências de captura disponíveis na nova posição
         Nothing -> 0
@@ -135,22 +139,36 @@ movimentosSimplesValidos tab jogador =
             in obterCasa tab pos == Just Vazia
 
 -- Escolhe o melhor movimento simples segundo heurística (exemplo: maior mobilidade no destino)
-escolherMelhorMovimentoSimples :: Tabuleiro -> Jogador -> [((Int, Char), (Int, Char))] -> ((Int, Char), (Int, Char))
-escolherMelhorMovimentoSimples tab jogador movimentos =
-    maximumBy (comparing (avaliarMovimento tab jogador)) movimentos
+escolherMelhorMovimentoSimples :: Tabuleiro -> Jogador -> [((Int, Char), (Int, Char))] -> IO ((Int, Char), (Int, Char))
+escolherMelhorMovimentoSimples tab jogador movimentos = do
+    let movimentosComPeso = [ (mov, avaliarMovimento tab jogador mov) | mov <- movimentos ]
+        melhorValor = maximum (map snd movimentosComPeso)
+        melhores = [ mov | (mov, peso) <- movimentosComPeso, peso == melhorValor ]
+    idx <- randomRIO (0, length melhores - 1)
+    return (melhores !! idx)
 
--- Atribui peso/pontuação a um movimento
+destinoAmeaçado :: Tabuleiro -> (Int, Char) -> Jogador -> Bool
+destinoAmeaçado tab pos jogadorAdversario =
+    any (\(_, seqMov) -> pos `elem` seqMov) $ fromMaybe [] (melhoresCapturas tab jogadorAdversario)
+
+
 avaliarMovimento :: Tabuleiro -> Jogador -> ((Int, Char), (Int, Char)) -> Int
 avaliarMovimento tab jogador (origem, destino) =
-    let base = length (sequenciasCaptura tab destino)
-        -- Adiciona peso para estar na última linha (chance de promover a peça)
+    let tabSimulado = moverPeca tab origem destino
+        adversario = trocarJogador jogador
+        ameaçado = case tabSimulado of
+            Just novoTab -> destinoAmeaçado novoTab destino adversario
+            Nothing -> True -- Se falhar a simulação, considera-se péssimo
+        base = length (sequenciasCaptura tab destino)
         linhaDestino = fst destino
         pesoPromocao = case jogador of
-            Jogador1 -> if linhaDestino == 8 then 3 else 0
-            Jogador2 -> if linhaDestino == 1 then 3 else 0
-        -- Soma a quantidade de casas livres ao redor da nova posição
+            Jogador1 -> if linhaDestino == 8 then 5 else 0
+            Jogador2 -> if linhaDestino == 1 then 5 else 0
         mobilidade = length $ movimentosAdjacentesLivres tab destino
-    in base * 10 + pesoPromocao + mobilidade
+    in if ameaçado
+        then -1000  -- movimento suicida: fortemente penalizado
+        else base * 10 + pesoPromocao + mobilidade
+
 
 -- Verifica movimentos adjacentes livres 
 movimentosAdjacentesLivres :: Tabuleiro -> (Int, Char) -> [(Int, Char)]
