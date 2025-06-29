@@ -43,6 +43,7 @@ escolherMelhorCaptura tab jogador capturas = do
     idx <- randomRIO (0, length melhores - 1) -- Escolha aleatório adotada para que a IA não faça sempre o mesmo movimento em caso de empate
     return (melhores !! idx)
 
+-- Avalia capturas
 avaliarCaptura :: Tabuleiro -> Jogador -> ((Int, Char), [(Int, Char)]) -> Int
 avaliarCaptura tab jogador (origem, seqMov) =
     let posFinal = if null seqMov then origem else last seqMov
@@ -52,9 +53,9 @@ avaliarCaptura tab jogador (origem, seqMov) =
     in case tabSimulado of
         Just tabNovo ->
             if destinoAmeacado tabNovo posFinal adversario
-                then -1000
+                then -1000 -- Movimento suícida penalizado
                 else
-                    let pesoPromocao = case jogador of
+                    let pesoPromocao = case jogador of -- Movimento de promoção bonificado
                             Jogador1 -> if linhaFinal == 8 then 100 else 0
                             Jogador2 -> if linhaFinal == 1 then 100 else 0
                     in pesoPromocao + length seqMov
@@ -166,10 +167,10 @@ avaliarMovimento tab jogador (origem, destino) =
             let adversario = trocarJogador jogador
                 ameacado = destinoAmeacado tabSimulado destino adversario
                 linhaDestino = fst destino
-                pesoPromocao = case jogador of
-                    Jogador1 -> if linhaDestino == 8 then 100 else 0
+                pesoPromocao = case jogador of -- Movimento de promoção bonificado
+                    Jogador1 -> if linhaDestino == 8 then 100 else 0 
                     Jogador2 -> if linhaDestino == 1 then 100 else 0
             in if ameacado
-                then -1000  -- movimento suicida: fortemente penalizado
+                then -1000  -- Penaliza movimento suícida
                 else pesoPromocao
-        Nothing -> -1000  -- movimento inválido
+        Nothing -> -1000
