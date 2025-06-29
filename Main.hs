@@ -82,24 +82,6 @@ loopJogo tab jogadorAtual maquinaVsMaquina = do
                         _ -> do
                             putStrLn "Entrada inválida!"
                             loopJogo tab jogadorAtual maquinaVsMaquina
-    where
-        fazerCapturas t ultimaPos [] = do -- Momento quando não há mais capturas a se fazer
-            case obterCasa t ultimaPos of
-                Just (Ocupada peca) -> do
-                    let novaPeca = avaliarPromocaoParaDama ultimaPos peca -- Verifica se deve promover a dama após último movimento da sequência
-                    case atualizarCasa t ultimaPos (Ocupada novaPeca) of
-                        Just t1 -> return (removerSemicapturadas t1)
-                        Nothing -> return (removerSemicapturadas t)
-                _ -> return (removerSemicapturadas t)
-        fazerCapturas t atual (prox:resto) = do
-            case capturarPecaComPos t atual prox of
-                Just (novoTab, novaPos) -> do
-                    mostrarTabuleiro novoTab
-                    putStrLn $ "Captura para " ++ show novaPos ++ " realizada!"
-                    fazerCapturas novoTab novaPos resto
-                Nothing -> do
-                    putStrLn $ "Erro ao capturar para " ++ show prox
-                    return t
 
 -- Menu inicial do jogo
 main:: IO()

@@ -3,7 +3,7 @@ module Maquina where
 import Tabuleiro
 import Movimento
 import Posicao
-import Data.List (maximumBy, intercalate, maximum)
+import Data.List (maximumBy, maximum)
 import Data.Ord (comparing)
 import Data.Maybe (fromJust, fromMaybe)
 
@@ -124,8 +124,8 @@ movimentosSimplesValidos tab jogador =
     caminharDirecao li ci (dl, dc) =
         let posicoes = tail $ zip [li, li+dl ..] [ci, ci+dc ..]
         in takeWhile ehValidaELivre posicoes >>= \ (x, y) ->
-                let destino = (8 - x, toEnum (fromEnum 'A' + y))
-                in [((8 - li, toEnum (fromEnum 'A' + ci)), destino)]
+            let destino = (8 - x, toEnum (fromEnum 'A' + y))
+            in [((8 - li, toEnum (fromEnum 'A' + ci)), destino)]
 
     ehValidaELivre :: (Int, Int) -> Bool
     ehValidaELivre (x, y)
