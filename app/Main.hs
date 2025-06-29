@@ -24,6 +24,7 @@ loopJogo tab jogadorAtual maquinaVsMaquina = do
             putStrLn $ "Fim de jogo! " ++ nomeJogadorColorido outroJogador ++ " venceu!"
             putStrLn "========================="
             mostrarTabuleiro tab
+            main
         else if maquinaVsMaquina || jogadorAtual == Jogador2 then do -- Verifica se é a vez da máquina jogar
             putStrLn $ "\nTurno da " ++ nomeJogadorColorido jogadorAtual ++ " (IA)"
             mostrarTabuleiro tab
