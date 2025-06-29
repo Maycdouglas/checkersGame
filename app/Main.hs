@@ -12,7 +12,7 @@ import Data.List (intercalate)
 -- Lê as posições de origem e destino
 -- Verifica se o movimento é válido (simples ou de captura)
 -- Verifica se a peça escolhida é do jogador atual
--- Atualiza o tabuleiro e troca o jogador
+-- Atualiza o tabuleiro
 
 -- Executa Loop do Jogo de Damas
 loopJogo :: Tabuleiro -> Jogador -> Bool -> IO ()
@@ -35,18 +35,18 @@ loopJogo tab jogadorAtual maquinaVsMaquina = do
             case melhoresCapturas tab jogadorAtual of -- Verifica as melhores jogadas de captura possíveis
                 Just sequencias -> do
                     putStrLn "\nVocê deve realizar uma das capturas a seguir:"
-                    mapM_ (\(i, (origem, seq)) ->
-                        putStrLn $ show i ++ " - Origem: " ++ show origem ++ " -> " ++ intercalate " -> " (map show seq)
+                    mapM_ (\(i, (origem, sequencia)) ->
+                        putStrLn $ show i ++ " - Origem: " ++ show origem ++ " -> " ++ intercalate " -> " (map show sequencia)
                      ) (zip [1..] sequencias)
                     putStrLn "Digite o número da jogada que deseja realizar:"
                     escolhaStr <- getLine
                     case reads escolhaStr of -- Verifica se a opção de captura selecionada pelo usuário é válida
                         [(idx, "")] | idx >= 1 && idx <= length sequencias -> do
-                            let (origem, seq) = sequencias !! (idx - 1)
-                            case capturarPecaComPos tab origem (head seq) of
+                            let (origem, sequencia) = sequencias !! (idx - 1)
+                            case capturarPecaComPos tab origem (head sequencia) of
                                 Just (tabPrimeiro, novaPos) -> do
                                     mostrarTabuleiro tabPrimeiro
-                                    tabFinal <- fazerCapturas tabPrimeiro novaPos (tail seq) -- Realiza as capturas da sequência
+                                    tabFinal <- fazerCapturas tabPrimeiro novaPos (tail sequencia) -- Realiza as capturas da sequência
                                     loopJogo tabFinal outroJogador maquinaVsMaquina
                                 Nothing -> do
                                     putStrLn "Erro ao executar a primeira captura."
