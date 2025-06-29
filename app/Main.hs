@@ -1,3 +1,5 @@
+-- Desenvolvido por: Maycon Douglas Henrique da Silva Gomes - 202065570C
+
 module Main where -- Define um módulo Main
 
 import Tabuleiro
