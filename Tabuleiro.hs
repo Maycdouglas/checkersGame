@@ -11,9 +11,50 @@ data Peca = PecaJogador1 | PecaJogador2 | DamaJogador1 | DamaJogador2 | Semicapt
 data Casa = Vazia | Ocupada Peca
     deriving (Eq, Show)
 
+-- Define tipo de dado Jogador
+data Jogador = Jogador1 | Jogador2
+    deriving (Eq, Show)
+
 -- Types para tornar o código mais legível
 type Linha = [Casa]
 type Tabuleiro = [Linha]
+
+-- Verifica se uma peça pertence a um jogador
+pecaPertenceAoJogador :: Peca -> Jogador -> Bool
+pecaPertenceAoJogador PecaJogador1 Jogador1 = True
+pecaPertenceAoJogador DamaJogador1 Jogador1 = True
+pecaPertenceAoJogador PecaJogador2 Jogador2 = True
+pecaPertenceAoJogador DamaJogador2 Jogador2 = True
+pecaPertenceAoJogador _ _ = False
+
+-- Verifica se o Jogador está sem peças
+jogadorSemPecas :: Tabuleiro -> Jogador -> Bool
+jogadorSemPecas tab jogador =
+    null [()
+         | linha <- tab
+         , Ocupada peca <- linha
+         , pecaPertenceAoJogador peca jogador
+         ]
+
+-- Retorna as posições das peças do Jogador
+posicoesDoJogador :: Tabuleiro -> Jogador -> [(Int, Char)]
+posicoesDoJogador tab jogador = 
+    [ (8 - li, toEnum (fromEnum 'A' + ci)) 
+    | (li, linha) <- zip [0..] tab
+    , (ci, casa) <- zip [0..] linha
+    , Ocupada peca <- [casa]
+    , pecaPertenceAoJogador peca jogador
+    ]
+
+-- Alterna entre jogadores
+trocarJogador :: Jogador -> Jogador
+trocarJogador Jogador1 = Jogador2
+trocarJogador Jogador2 = Jogador1
+
+-- Colore o nome do Jogador 
+nomeJogadorColorido :: Jogador -> String
+nomeJogadorColorido Jogador1 = corTexto "\x1b[34;1m" "Jogador 1"  -- Azul
+nomeJogadorColorido Jogador2 = corTexto "\x1b[33;1m" "Jogador 2"  -- Amarelo
 
 -- Checa se a peça que será capturada é uma adversaria ou nao
 ehPecaAdversaria :: Peca -> Peca -> Bool

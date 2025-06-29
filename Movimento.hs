@@ -417,3 +417,53 @@ sequenciasCapturaDama tab origem = buscar tab origem [origem] []
                                 map (destino :) (buscar novoTab destino (destino:visitados) (posCapturada:capturados))
                             Nothing -> []
                         ) ds
+
+-- Gera as melhores capturas possíveis na jogada
+melhoresCapturas :: Tabuleiro -> Jogador -> Maybe [((Int, Char), [(Int, Char)])]
+melhoresCapturas tab jogador =
+    let
+        todasPosicoes = posicoesDoJogador tab jogador
+        todasCapturas =
+            [ (origem, seq)
+            | origem <- todasPosicoes
+            , seq <- sequenciasCaptura tab origem
+            , not (null seq)
+            ]
+    in
+        if null todasCapturas
+            then Nothing
+            else
+                let maxLen = maximum (map (length . snd) todasCapturas)
+                in Just $ filter (\(_, seq) -> length seq == maxLen) todasCapturas
+
+-- Executa loop para capturas sequenciais
+loopCapturasSequenciais :: Tabuleiro -> (Int, Char) -> Jogador -> IO Tabuleiro
+loopCapturasSequenciais tab pos jogador = do
+    let capturas = sequenciasCaptura tab pos
+    case capturas of
+        [] -> do
+            putStrLn "Nenhuma captura possível a partir daqui."
+            return tab
+        _ -> do
+            let melhores = filter (\seq -> length seq == maximum (map length capturas)) capturas
+            case melhores of
+                [] -> return tab
+                (melhorSeq:_) -> fazerCapturas tab pos melhorSeq
+    where
+        fazerCapturas t ultimaPos [] = do
+            case obterCasa t ultimaPos of
+                Just (Ocupada peca) -> do
+                    let novaPeca = avaliarPromocaoParaDama ultimaPos peca
+                    case atualizarCasa t ultimaPos (Ocupada novaPeca) of
+                        Just t1 -> return (removerSemicapturadas t1)
+                        Nothing -> return (removerSemicapturadas t) -- Falha ao atualizar
+                _ -> return (removerSemicapturadas t)  -- Ao final, limpa as semicapturadas   
+        fazerCapturas t atual (prox:resto) = do
+            case capturarPecaComPos t atual prox of
+                Just (novoTab, novaPos) -> do
+                    mostrarTabuleiro novoTab
+                    putStrLn $ "Captura para " ++ show novaPos ++ " realizada!"
+                    fazerCapturas novoTab novaPos resto
+                Nothing -> do
+                    putStrLn $ "Erro ao tentar capturar para " ++ show prox
+                    return t
