@@ -3,7 +3,9 @@
 Este projeto consiste em uma implementação completa do jogo de Damas, desenvolvida em **Haskell**, com suporte a regras oficiais, múltiplas capturas, promoção para dama e uma **IA básica** para jogadas automáticas.
 
 ![Menu Inicial](MenuInicialDamas.png)
+
 ![Inicio do jogo](InicioJogoDamas.png)
+
 ![Fim do jogo](FimJogoDamas.png)
 
 ---
@@ -29,13 +31,25 @@ Explorar os conceitos da **programação funcional** aplicados no desenvolviment
 
 ## Estrutura do Projeto
 
-src/
-├── Tabuleiro.hs -- Representação e manipulação do tabuleiro
-├── Jogador.hs -- Tipos e lógica de jogadores
-├── Regras.hs -- Regras do jogo e movimentos permitidos
-├── Captura.hs -- Algoritmo de busca por múltiplas capturas
-├── IA.hs -- Implementação de uma IA simples
-└── Main.hs -- Entrada principal do jogo
+app/
+
+├── Tabuleiro.hs -- Contém a definição dos novos tipos de dados Peca, Casa e Jogador, 
+sinônimos Linha (lista de Casas) e Tabuleiro (lista de Linhas), funções 
+relacionadas aos tipos Peca, Casa e Jogador e funções de geração e 
+exibição do Tabuleiro.
+
+├── Movimento.hs -- Contém funções relacionadas a movimentação e captura das peças do 
+jogo.
+
+├── Maquina.hs -- Contém funções relacionadas às jogadas da Máquina, definindo a 
+melhor estratégia de jogo de acordo com a situação da partida. 
+
+├── Posicao.hs -- Contém funções relacionadas à leitura e conversão de linhas e colunas, 
+de acordo com a entrada do jogador e com a estrutura interna do 
+tabuleiro.
+
+└── Main.hs -- Contém o fluxo principal, menu inicial e loop do jogo. 
+
 
 ## Instruções
 
