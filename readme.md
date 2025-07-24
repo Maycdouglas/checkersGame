@@ -2,6 +2,10 @@
 
 Este projeto consiste em uma implementação completa do jogo de Damas, desenvolvida em **Haskell**, com suporte a regras oficiais, múltiplas capturas, promoção para dama e uma **IA básica** para jogadas automáticas.
 
+![Menu Inicial](MenuInicialDamas.png)
+![Inicio do jogo](InicioJogoDamas.png)
+![Fim do jogo](FimJogoDamas.png)
+
 ---
 
 ## Objetivo
@@ -52,3 +56,7 @@ Execute os comandos abaixo na raiz do projeto:
 - Funções puras: a maioria das funções não depende de estado global.
 - Composição de funções: permite manipular listas e estados do jogo de forma elegante.
 - Tipos algébricos (ADTs): utilizados para representar peças, jogadas e estados do jogo.
+
+## Observação
+
+Para mais informações sobre o desenvolvimento, pode acessar o arquivo "Relatório - Jogo de Damas em Haskell" na raiz do projeto
