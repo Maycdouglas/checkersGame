@@ -25,7 +25,7 @@ Explorar os conceitos da **programação funcional** aplicados no desenvolviment
 - Promoção de peças a "Damas" (peças que se movimentam em todas as direções)
 - Detecção de fim de jogo
 - Modo jogador vs jogador ou jogador vs IA
-- IA simples com heurística baseada em número de capturas
+- IA simples com heurística baseada em número de capturas, promoção para dama e se a peça ficará ameaçada após movimentação
 
 ---
 
