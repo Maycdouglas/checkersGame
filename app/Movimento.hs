@@ -1,5 +1,3 @@
--- Desenvolvido por: Maycon Douglas Henrique da Silva Gomes - 202065570C
-
 module Movimento where
 
 import Tabuleiro

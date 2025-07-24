@@ -1,5 +1,3 @@
--- Desenvolvido por: Maycon Douglas Henrique da Silva Gomes - 202065570C
-
 module Posicao where
 
 import Data.Char (toUpper) -- Importa função toUpper do módulo Data.Char para converter letra minúscula em letra maiúscula | Usado em lerPosicao
